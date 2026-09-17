@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Proofed</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Proofed">
+<meta name="theme-color" content="#2b3036">
+<style>
+:root{
+  --steel:#2b3036; --semolina:#d9a62e; --basil:#3e6a48;
+  --surface:#f3f4f2; --card:#ffffff; --text:#2b3036; --muted:#6b7177; --line:#e5e7e5;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --surface:#1b1d20; --card:#25282c; --text:#e6e8ea; --muted:#9aa0a6; --line:#34383d; --basil:#7fb08a; }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--surface); color:var(--text);
+  font:16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding:max(16px, env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+  -webkit-text-size-adjust:100%;
+}
+main{max-width:520px;margin:0 auto}
+h1{font-size:20px;margin:0 0 16px;font-weight:600}
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px}
+.hero{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px}
+.ball{
+  display:grid;place-items:center;border-radius:50%;
+  background:radial-gradient(circle at 32% 28%, #e3b24a, #cf9a24);
+  color:#2b3036;transition:width .3s cubic-bezier(.3,1.2,.5,1),height .3s cubic-bezier(.3,1.2,.5,1);
+}
+.ball b{font-size:44px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.ball span{font-size:12px;font-weight:500}
+.summary{color:var(--muted);font-size:14px}
+.row{margin-bottom:18px}
+.row:last-child{margin-bottom:0}
+.rowhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.rowhead b{font-size:14px}
+.rowhead span{font-weight:700;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--basil);height:32px}
+.seg{display:flex;gap:4px;background:var(--surface);border-radius:9px;padding:3px}
+.seg button{
+  flex:1;padding:8px 0;border:0;border-radius:7px;background:transparent;color:var(--text);
+  font:inherit;font-size:14px;cursor:pointer;
+}
+.seg button[aria-pressed=true]{background:var(--card);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.toggle small{display:block;color:var(--muted);font-size:12px}
+input[type=checkbox]{width:44px;height:27px;accent-color:var(--basil)}
+.stats{display:flex;gap:10px;margin-bottom:16px}
+.stat{flex:1;background:var(--card);border-radius:10px;padding:12px 4px;text-align:center}
+.stat b{display:block;font-size:19px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.tip{background:rgba(217,166,46,.16);border-radius:12px;padding:14px;margin-bottom:16px;font-size:14px}
+.tip b{display:block;margin-bottom:2px}
+table{width:100%;border-collapse:collapse}
+td{padding:9px 0;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td small{display:block;color:var(--muted);font-size:12px}
+td.amt{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.pct{text-align:right;color:var(--muted);font-size:12px;width:52px;font-variant-numeric:tabular-nums}
+.tablehead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.tablehead b{font-size:17px}
+.tablehead span{font-size:12px;color:var(--basil)}
+ol{margin:12px 0 0;padding-left:22px}
+ol li{margin-bottom:8px;font-size:14px}
+summary{font-weight:600;cursor:pointer}
+button.share{
+  width:100%;padding:14px;border:0;border-radius:12px;background:var(--basil);color:#fff;
+  font:inherit;font-weight:600;cursor:pointer;
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>Dough</h1>
+
+  <div class="hero">
+    <div class="ball" id="ball" style="width:190px;height:190px">
+      <div style="text-align:center"><b id="ballg">480</b><br><span>grams per ball</span></div>
+    </div>
+    <div class="summary" id="summary"></div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="rowhead"><b>Pizza size</b><span id="sizeout">16"</span></div>
+      <input type="range" id="size" min="10" max="20" step="1" value="16" aria-label="Pizza size in inches">
+    </div>
+    <div class="row">
+      <div class="rowhead"><b>Number of pizzas</b><span id="countout">6</span></div>
+      <input type="range" id="count" min="1" max="10" step="1" value="6" aria-label="Number of pizzas">
+    </div>
+    <div class="row">
+      <div class="rowhead"><b>Thickness</b></div>
+      <div class="seg" id="thickness" role="group" aria-label="Thickness">
+        <button data-v="thin" aria-pressed="false">Thin</button>
+        <button data-v="regular" aria-pressed="true">Regular</button>
+        <button data-v="thick" aria-pressed="false">Thick</button>
+      </div>
+    </div>
+    <div class="row toggle">
+      <label for="gf"><b style="font-size:14px">Gluten-free</b><small>Uses GF flour and 80% hydration</small></label>
+      <input type="checkbox" id="gf">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b id="flour">1705</b><span>g flour</span></div>
+    <div class="stat"><b id="water">1057</b><span>g water</span></div>
+    <div class="stat"><b id="hydr">62%</b><span>hydration</span></div>
+  </div>
+
+  <div class="tip" id="tip" hidden><b id="tiptitle"></b><span id="tipmsg"></span></div>
+
+  <div class="card">
+    <div class="tablehead"><b id="doughtype">Regular dough</b><span id="rest">Cold ferment 2–4 days</span></div>
+    <table><tbody id="ing"></tbody></table>
+  </div>
+
+  <details class="card">
+    <summary id="stepstitle">How to make the dough</summary>
+    <ol id="steps"></ol>
+  </details>
+
+  <button class="share" id="share">Share recipe</button>
+</main>
+
+<script>
+// Formulas match the iOS app (Proofed/Model/DoughCalculator.swift).
+var REGULAR_BASE = 1509.797685 * (480/425);   // total flour, g, for 6 x 16" regular
+var GF_BASE = 333 * 6;
+var DOUGH_RATIO = 2550 / 1509.797685;         // flour -> total dough
+var FACTOR = { thin: 1.8, regular: 2.11, thick: 2.75 };
+
+var REGULAR_STEPS = [
+  "Chill the water to below 60°F.",
+  "Stir the yeast into the water.",
+  "Add the flour and olive oil; mix for 2 minutes.",
+  "Add the sugar and salt with the mixer on low.",
+  "Keep mixing for another 10 minutes.",
+  "Cover and let it rest for 1–3 hours.",
+  "Divide into balls and pinch the seams closed.",
+  "Refrigerate for 2–4 days; day 3 is the sweet spot.",
+  "Let the balls come to room temperature before stretching."
+];
+var GF_STEPS = [
+  "Combine the cold water and yeast.",
+  "Add the GF flour and olive oil; mix for 2 minutes.",
+  "Add the sugar and salt; mix for 3–4 minutes.",
+  "Chill for 15 minutes so it firms up.",
+  "Oil your hands and form the balls.",
+  "Refrigerate for up to 48 hours.",
+  "Let the balls come to room temperature before shaping."
+];
+
+function calculate(input) {
+  var flour = (input.glutenFree ? GF_BASE : REGULAR_BASE)
+    * Math.pow(input.size / 16, 2)
+    * (input.count / 6)
+    * (FACTOR[input.thickness] / 2.11);
+  var hyd = input.glutenFree ? 0.80 : 0.62;
+  var r = Math.round;
+  return {
+    ball: r(flour * DOUGH_RATIO / input.count),
+    flour: r(flour),
+    water: r(flour * hyd),
+    hydration: r(hyd * 100),
+    ingredients: [
+      { name: input.glutenFree ? "Gluten-free flour" : "Bread flour",
+        note: input.glutenFree ? "A pizza-specific GF blend works best" : "12–14% protein",
+        amount: String(r(flour)), pct: "100%" },
+      { name: "Water", note: "Cold, below 60°F", amount: String(r(flour * hyd)), pct: r(hyd * 100) + "%" },
+      { name: "Yeast", note: "Active dry", amount: (flour * 0.004).toFixed(1), pct: "0.4%" },
+      { name: "Salt", note: "", amount: String(r(flour * 0.025)), pct: "2.5%" },
+      { name: "Sugar", note: "", amount: String(r(flour * 0.02)), pct: "2%" },
+      { name: "Olive oil", note: "", amount: String(r(flour * 0.033)), pct: "3.3%" }
+    ],
+    doughType: input.glutenFree ? "Gluten-free" : "Regular dough",
+    rest: input.glutenFree ? "Chill up to 48 hours" : "Cold ferment 2–4 days",
+    summary: input.count + " ball" + (input.count > 1 ? "s" : "") + ", " + input.size + '", ' + input.thickness,
+    tip: tipFor(input),
+    steps: input.glutenFree ? GF_STEPS : REGULAR_STEPS
+  };
+}
+
+function tipFor(i) {
+  if (i.glutenFree) return { title: "Gluten-free", msg: "This dough is tacky. Oil your hands before you shape it." };
+  if (i.size >= 18) return { title: "Large pizza", msg: 'At ' + i.size + '", give the oven a full 45-minute preheat at its highest setting.' };
+  if (i.count >= 8) return { title: "Big batch", msg: "Shape all " + i.count + " balls in one go. They hold in the fridge for up to 4 days." };
+  if (i.thickness === "thick") return { title: "Thick crust", msg: "Bake at 450°F for 10–12 minutes rather than 6–8." };
+  if (i.thickness === "thin") return { title: "Thin crust", msg: "It's done in 4–5 minutes, so stay close to the oven." };
+  return null;
+}
+
+function shareText(input, r) {
+  var t = "PIZZA DOUGH\n" + input.count + "\u00d7 " + input.size + '" ' + input.thickness + ", " + r.ball + " g per ball\n\n";
+  r.ingredients.forEach(function (i) { t += i.name + ": " + i.amount + " g\n"; });
+  t += "\n" + r.rest + "\n\nSteps:\n";
+  r.steps.forEach(function (s, n) { t += (n + 1) + ". " + s + "\n"; });
+  return t;
+}
+
+// --- UI ---
+var $ = function (id) { return document.getElementById(id); };
+var state = {
+  size: +(localStorage.getItem("size") || 16),
+  count: +(localStorage.getItem("count") || 6),
+  thickness: localStorage.getItem("thickness") || "regular",
+  glutenFree: localStorage.getItem("gf") === "1"
+};
+
+function render() {
+  var r = calculate(state);
+  $("ballg").textContent = r.ball;
+  var d = 150 + 70 * (state.size - 10) / 10;
+  $("ball").style.width = $("ball").style.height = d + "px";
+  $("summary").textContent = r.summary;
+  $("sizeout").textContent = state.size + '"';
+  $("countout").textContent = state.count;
+  $("flour").textContent = r.flour;
+  $("water").textContent = r.water;
+  $("hydr").textContent = r.hydration + "%";
+  $("doughtype").textContent = r.doughType;
+  $("rest").textContent = r.rest;
+
+  $("ing").innerHTML = r.ingredients.map(function (i) {
+    return "<tr><td>" + i.name + (i.note ? "<small>" + i.note + "</small>" : "") +
+      '</td><td class="amt">' + i.amount + " g</td><td class=\"pct\">" + i.pct + "</td></tr>";
+  }).join("");
+
+  if (r.tip) { $("tip").hidden = false; $("tiptitle").textContent = r.tip.title; $("tipmsg").textContent = r.tip.msg; }
+  else { $("tip").hidden = true; }
+
+  $("stepstitle").textContent = state.glutenFree ? "How to make gluten-free dough" : "How to make the dough";
+  $("steps").innerHTML = r.steps.map(function (s) { return "<li>" + s + "</li>"; }).join("");
+
+  localStorage.setItem("size", state.size);
+  localStorage.setItem("count", state.count);
+  localStorage.setItem("thickness", state.thickness);
+  localStorage.setItem("gf", state.glutenFree ? "1" : "0");
+}
+
+$("size").value = state.size;
+$("count").value = state.count;
+$("gf").checked = state.glutenFree;
+[].forEach.call($("thickness").children, function (b) {
+  b.setAttribute("aria-pressed", String(b.dataset.v === state.thickness));
+  b.addEventListener("click", function () {
+    state.thickness = b.dataset.v;
+    [].forEach.call($("thickness").children, function (o) {
+      o.setAttribute("aria-pressed", String(o === b));
+    });
+    render();
+  });
+});
+$("size").addEventListener("input", function (e) { state.size = +e.target.value; render(); });
+$("count").addEventListener("input", function (e) { state.count = +e.target.value; render(); });
+$("gf").addEventListener("change", function (e) { state.glutenFree = e.target.checked; render(); });
+
+$("share").addEventListener("click", function () {
+  var text = shareText(state, calculate(state));
+  if (navigator.share) {
+    navigator.share({ text: text }).catch(function () {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function () {
+      var b = $("share"), old = b.textContent;
+      b.textContent = "Copied";
+      setTimeout(function () { b.textContent = old; }, 2000);
+    });
+  }
+});
+
+render();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
+</script>
+</body>
+</html>

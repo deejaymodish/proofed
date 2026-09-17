@@ -17,7 +17,7 @@ targets:
     sources: [Proofed]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.pizzadough.proofed
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.proofed
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Proofed
         INFOPLIST_KEY_UILaunchScreen_Generation: YES

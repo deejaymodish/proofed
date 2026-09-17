@@ -108,3 +108,26 @@ TestFlight: Product > Archive > Distribute App > App Store Connect (requires pai
 Debug: SwiftUI previews in CalculatorView.swift; breakpoints in `DoughCalculator.calculate`.
 Without XcodeGen: File > New > Project > iOS App (SwiftUI) named Proofed, delete its generated
 ContentView/App files, drag in `Proofed/` sources, add a Unit Testing target and drag in `ProofedTests/`.
+
+---
+
+## Web app (GitHub Pages)
+`docs/` is a standalone home-screen web app using the same formulas as the Swift model
+(verified against the same golden values). Files: `index.html` (all HTML/CSS/JS),
+`manifest.json`, `sw.js` (offline cache), `icons/`.
+
+Publish:
+```
+git remote add origin git@github.com:<you>/proofed.git
+git push -u origin master
+```
+Then GitHub > repo > Settings > Pages > Source: "Deploy from a branch", branch `master`, folder `/docs`.
+Live at `https://<you>.github.io/proofed/` after a minute or two.
+
+Install on iPhone: open that URL in Safari > Share > Add to Home Screen.
+After updating files, bump `CACHE` in `sw.js` or the phone keeps serving the old version.
+
+## SideStore
+`scripts/build-ipa.sh` produces `Proofed.ipa` from the Xcode project (unsigned; SideStore
+re-signs with your Apple ID). Plug in the phone, run it from the repo root, then AirDrop the
+.ipa and open it in SideStore.
