@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CalculatorView: View {
     // Persist the last settings between launches.
+    @AppStorage("style") private var styleRaw = Style.classic.rawValue
     @AppStorage("sizeInches") private var sizeInches = 16
     @AppStorage("count") private var count = 6
     @AppStorage("thickness") private var thicknessRaw = Thickness.regular.rawValue
@@ -9,7 +10,8 @@ struct CalculatorView: View {
     @State private var showSteps = false
 
     private var input: DoughInput {
-        DoughInput(sizeInches: sizeInches.clamped(to: DoughInput.sizeRange),
+        DoughInput(style: Style(rawValue: styleRaw) ?? .classic,
+                   sizeInches: sizeInches.clamped(to: DoughInput.sizeRange),
                    count: count.clamped(to: DoughInput.countRange),
                    thickness: Thickness(rawValue: thicknessRaw) ?? .regular,
                    glutenFree: glutenFree)
@@ -27,7 +29,7 @@ struct CalculatorView: View {
                     StatsRow(result: result)
                     if let tip = result.tip { TipBanner(tip: tip) }
                     IngredientTable(result: result)
-                    stepsSection(result, glutenFree: input.glutenFree)
+                    stepsSection(result)
                 }
                 .padding()
             }
@@ -44,6 +46,16 @@ struct CalculatorView: View {
 
     private var settings: some View {
         VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Text("Style").font(.subheadline.weight(.semibold))
+                Spacer()
+                Picker("Style", selection: $styleRaw) {
+                    ForEach(Style.allCases) { Text($0.label).tag($0.rawValue) }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+            }
+
             SliderRow(title: "Pizza size", value: $sizeInches, range: DoughInput.sizeRange, unit: "\"")
             SliderRow(title: "Number of pizzas", value: $count, range: DoughInput.countRange, unit: "")
 
@@ -55,10 +67,12 @@ struct CalculatorView: View {
                 .pickerStyle(.segmented)
             }
 
-            Toggle(isOn: $glutenFree) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Gluten-free").font(.subheadline.weight(.semibold))
-                    Text("Uses GF flour and 80% hydration").font(.caption).foregroundStyle(Theme.muted)
+            if input.style.supportsGlutenFree {
+                Toggle(isOn: $glutenFree) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Gluten-free").font(.subheadline.weight(.semibold))
+                        Text("Uses GF flour and 80% hydration").font(.caption).foregroundStyle(Theme.muted)
+                    }
                 }
             }
         }
@@ -67,7 +81,7 @@ struct CalculatorView: View {
         .sensoryFeedback(.selection, trigger: input)
     }
 
-    private func stepsSection(_ result: DoughResult, glutenFree: Bool) -> some View {
+    private func stepsSection(_ result: DoughResult) -> some View {
         DisclosureGroup(isExpanded: $showSteps) {
             VStack(alignment: .leading, spacing: 12) {
                 ForEach(Array(result.steps.enumerated()), id: \.offset) { i, step in
@@ -82,11 +96,19 @@ struct CalculatorView: View {
             }
             .padding(.top, 12)
         } label: {
-            Text(glutenFree ? "How to make gluten-free dough" : "How to make the dough")
+            Text("How to make \(Self.doughName(result.doughType))")
                 .font(.headline).foregroundStyle(Theme.steel)
         }
         .padding()
         .background(Theme.card, in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+extension CalculatorView {
+    /// "Regular dough" -> "regular dough"; "Tavern-style" -> "tavern-style dough"
+    static func doughName(_ type: String) -> String {
+        let lower = type.lowercased()
+        return lower.hasSuffix("dough") ? lower : lower + " dough"
     }
 }
 

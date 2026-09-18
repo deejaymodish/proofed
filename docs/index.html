@@ -48,6 +48,10 @@ input[type=range]{width:100%;accent-color:var(--basil);height:32px}
   flex:1;padding:8px 0;border:0;border-radius:7px;background:transparent;color:var(--text);
   font:inherit;font-size:14px;cursor:pointer;
 }
+select#style{
+  width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);
+  background:var(--surface);color:var(--text);font:inherit;font-size:15px;
+}
 .seg button[aria-pressed=true]{background:var(--card);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.18)}
 .toggle{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .toggle small{display:block;color:var(--muted);font-size:12px}
@@ -89,6 +93,15 @@ button.share{
 
   <div class="card">
     <div class="row">
+      <div class="rowhead"><b>Style</b></div>
+      <select id="style" aria-label="Dough style">
+        <option value="classic">Classic</option>
+        <option value="neapolitan">Neapolitan</option>
+        <option value="newyork">New York</option>
+        <option value="tavern">Tavern</option>
+      </select>
+    </div>
+    <div class="row">
       <div class="rowhead"><b>Pizza size</b><span id="sizeout">16"</span></div>
       <input type="range" id="size" min="10" max="20" step="1" value="16" aria-label="Pizza size in inches">
     </div>
@@ -104,7 +117,7 @@ button.share{
         <button data-v="thick" aria-pressed="false">Thick</button>
       </div>
     </div>
-    <div class="row toggle">
+    <div class="row toggle" id="gfrow">
       <label for="gf"><b style="font-size:14px">Gluten-free</b><small>Uses GF flour and 80% hydration</small></label>
       <input type="checkbox" id="gf">
     </div>
@@ -133,73 +146,178 @@ button.share{
 
 <script>
 // Formulas match the iOS app (Proofed/Model/DoughCalculator.swift).
-var REGULAR_BASE = 1509.797685 * (480/425);   // total flour, g, for 6 x 16" regular
-var GF_BASE = 333 * 6;
-var DOUGH_RATIO = 2550 / 1509.797685;         // flour -> total dough
 var FACTOR = { thin: 1.8, regular: 2.11, thick: 2.75 };
 
-var REGULAR_STEPS = [
-  "Chill the water to below 60°F.",
-  "Stir the yeast into the water.",
-  "Add the flour and olive oil; mix for 2 minutes.",
-  "Add the sugar and salt with the mixer on low.",
-  "Keep mixing for another 10 minutes.",
-  "Cover and let it rest for 1–3 hours.",
-  "Divide into balls and pinch the seams closed.",
-  "Refrigerate for 2–4 days; day 3 is the sweet spot.",
-  "Let the balls come to room temperature before stretching."
-];
-var GF_STEPS = [
-  "Combine the cold water and yeast.",
-  "Add the GF flour and olive oil; mix for 2 minutes.",
-  "Add the sugar and salt; mix for 3–4 minutes.",
-  "Chill for 15 minutes so it firms up.",
-  "Oil your hands and form the balls.",
-  "Refrigerate for up to 48 hours.",
-  "Let the balls come to room temperature before shaping."
-];
+var RECIPES = {
+  classic: {
+    baseFlour: 1509.797685 * (480/425), refSize: 16, refCount: 6,
+    hydration: 0.62, yeast: 0.004, salt: 0.025, sugar: 0.02, oil: 0.033,
+    doughRatio: 2550 / 1509.797685,
+    flourName: "Bread flour", flourNote: "12\u201314% protein",
+    waterNote: "Cold, below 60\u00b0F", yeastNote: "Active dry", oilName: "Olive oil",
+    typeName: "Regular dough", rest: "Cold ferment 2\u20134 days",
+    steps: [
+      "Chill the water to below 60\u00b0F.",
+      "Stir the yeast into the water.",
+      "Add the flour and olive oil; mix for 2 minutes.",
+      "Add the sugar and salt with the mixer on low.",
+      "Keep mixing for another 10 minutes.",
+      "Cover and let it rest for 1\u20133 hours.",
+      "Divide into balls and pinch the seams closed.",
+      "Refrigerate for 2\u20134 days; day 3 is the sweet spot.",
+      "Let the balls come to room temperature before stretching."
+    ]
+  },
+  classicGF: {
+    baseFlour: 333 * 6, refSize: 16, refCount: 6,
+    hydration: 0.80, yeast: 0.004, salt: 0.025, sugar: 0.02, oil: 0.033,
+    doughRatio: 2550 / 1509.797685,
+    flourName: "Gluten-free flour", flourNote: "A pizza-specific GF blend works best",
+    waterNote: "Cold, below 60\u00b0F", yeastNote: "Active dry", oilName: "Olive oil",
+    typeName: "Gluten-free", rest: "Chill up to 48 hours",
+    steps: [
+      "Combine the cold water and yeast.",
+      "Add the GF flour and olive oil; mix for 2 minutes.",
+      "Add the sugar and salt; mix for 3\u20134 minutes.",
+      "Chill for 15 minutes so it firms up.",
+      "Oil your hands and form the balls.",
+      "Refrigerate for up to 48 hours.",
+      "Let the balls come to room temperature before shaping."
+    ]
+  },
+  // King Arthur "00" crust: 232 g flour, 170 g water, 8 g salt, 2 g sugar, ~0.4 g yeast; two 10-12" pies.
+  neapolitan: {
+    baseFlour: 232, refSize: 11, refCount: 2,
+    hydration: 170/232, yeast: 0.4/232, salt: 8/232, sugar: 2/232, oil: 0,
+    doughRatio: 1 + (170 + 0.4 + 8 + 2)/232,
+    flourName: "\u201c00\u201d pizza flour", flourNote: "Bread flour also works",
+    waterNote: "Lukewarm, 105\u2013115\u00b0F", yeastNote: "Instant or active dry", oilName: "Olive oil",
+    typeName: "Neapolitan", rest: "Rise 12\u201324 hours at room temp",
+    steps: [
+      "Mix the flour, yeast, sugar, and salt, then stir in the lukewarm water.",
+      "Stop as soon as it holds together as a rough dough.",
+      "Cover and leave it at room temperature for 12\u201324 hours. It gets puffy, not doubled.",
+      "Preheat the oven to 500\u2013550\u00b0F with a steel or stone inside for at least 30 minutes.",
+      "Divide the dough and stretch and fold each piece on all four sides.",
+      "Tuck the edges under into a smooth ball, seam down, and rest 45\u201360 minutes.",
+      "Press the dough out with your fingertips, leaving the outer edge untouched.",
+      "Stretch it to 10\u201312\" on a floured peel, letting gravity do the work.",
+      "Bake about 6 minutes on a steel or 7 on a stone, then broil 2\u20133 minutes until charred."
+    ]
+  },
+  // New York: 900 g flour (10% whole wheat), 576 g water, 31 g salt, 14 g sugar, 5 g yeast, 27 g oil; four 14-16" pies.
+  newyork: {
+    baseFlour: 900, refSize: 15, refCount: 4,
+    hydration: 576/900, yeast: 5/900, salt: 31/900, sugar: 14/900, oil: 27/900,
+    doughRatio: 1 + (576 + 5 + 31 + 14 + 27)/900,
+    flourName: "Bread flour", flourNote: "High protein, 12\u201314%",
+    secondFlourShare: 90/900, secondFlourName: "Whole wheat flour", secondFlourNote: "Freshly milled if you can",
+    waterNote: "About 75\u00b0F", yeastNote: "Instant (or 8 g fresh)", oilName: "Olive oil",
+    typeName: "New York", rest: "Cold ferment overnight, up to 24 hours",
+    steps: [
+      "Mix the bread flour, whole wheat flour, sugar, and salt together.",
+      "Whisk the yeast into the water, then stir in the olive oil.",
+      "Pour the wet into the dry and mix to a shaggy dough.",
+      "Knead 3\u20135 minutes, until smooth, and shape into a ball.",
+      "Put it in a greased bowl, cover tightly, and refrigerate overnight.",
+      "Divide, then round each piece into a taut ball with the seam underneath.",
+      "Chill until needed, or proof at room temperature about 3.5 hours to bake today.",
+      "Preheat a steel or stone at 550\u00b0F convection for a full hour.",
+      "Open the dough by hand, leaving a 1/3 inch rim, then stretch it over your fists.",
+      "Sauce, cheese, bake about 7 minutes, then broil 1 minute for char."
+    ]
+  },
+  // Chicago tavern-style: reference batch is 300 g flour for two 12" pizzas.
+  tavern: {
+    baseFlour: 300, refSize: 12, refCount: 2,
+    hydration: 0.50, yeast: 0.0067, salt: 0.0233, sugar: 0.0233, oil: 0.10,
+    doughRatio: 1 + 0.50 + 0.0067 + 0.0233 + 0.0233 + 0.10,
+    flourName: "Bread or all-purpose flour", flourNote: "Either works; bread flour is chewier",
+    waterNote: "Ice cold", yeastNote: "Instant", oilName: "Neutral oil or melted butter",
+    typeName: "Tavern-style", rest: "Cold ferment 24\u201348 hours",
+    steps: [
+      "Whisk the flour, sugar, salt, and instant yeast together.",
+      "Pour in the ice-cold water and the oil or melted butter.",
+      "Mix until it comes together as a shaggy, stiff ball.",
+      "Knead for 2\u20133 minutes, until smooth and even.",
+      "Put it in a lightly oiled container and cover it tightly.",
+      "Refrigerate for 24\u201348 hours.",
+      "Take it out and let it sit for 30 minutes.",
+      "Roll it very thin on a surface dusted with cornmeal or semolina.",
+      "Dock the dough all over with a fork so it doesn't bubble."
+    ]
+  }
+};
+
+function supportsGF(style) { return style === "classic"; }
+
+function recipeFor(input) {
+  if (input.style === "tavern") return RECIPES.tavern;
+  if (input.style === "neapolitan") return RECIPES.neapolitan;
+  if (input.style === "newyork") return RECIPES.newyork;
+  return input.glutenFree ? RECIPES.classicGF : RECIPES.classic;
+}
+
+function pct(v) {
+  var p = Math.round(v * 10000) / 100;
+  return (p === Math.round(p) ? String(p) : String(p)) + "%";
+}
 
 function calculate(input) {
-  var flour = (input.glutenFree ? GF_BASE : REGULAR_BASE)
-    * Math.pow(input.size / 16, 2)
-    * (input.count / 6)
+  var rc = recipeFor(input);
+  var flour = rc.baseFlour
+    * Math.pow(input.size / rc.refSize, 2)
+    * (input.count / rc.refCount)
     * (FACTOR[input.thickness] / 2.11);
-  var hyd = input.glutenFree ? 0.80 : 0.62;
   var r = Math.round;
   return {
-    ball: r(flour * DOUGH_RATIO / input.count),
+    ball: r(flour * rc.doughRatio / input.count),
     flour: r(flour),
-    water: r(flour * hyd),
-    hydration: r(hyd * 100),
-    ingredients: [
-      { name: input.glutenFree ? "Gluten-free flour" : "Bread flour",
-        note: input.glutenFree ? "A pizza-specific GF blend works best" : "12–14% protein",
-        amount: String(r(flour)), pct: "100%" },
-      { name: "Water", note: "Cold, below 60°F", amount: String(r(flour * hyd)), pct: r(hyd * 100) + "%" },
-      { name: "Yeast", note: "Active dry", amount: (flour * 0.004).toFixed(1), pct: "0.4%" },
-      { name: "Salt", note: "", amount: String(r(flour * 0.025)), pct: "2.5%" },
-      { name: "Sugar", note: "", amount: String(r(flour * 0.02)), pct: "2%" },
-      { name: "Olive oil", note: "", amount: String(r(flour * 0.033)), pct: "3.3%" }
-    ],
-    doughType: input.glutenFree ? "Gluten-free" : "Regular dough",
-    rest: input.glutenFree ? "Chill up to 48 hours" : "Cold ferment 2–4 days",
+    water: r(flour * rc.hydration),
+    hydration: r(rc.hydration * 100),
+    ingredients: (rc.secondFlourShare
+      ? [ { name: rc.flourName, note: rc.flourNote, amount: String(r(flour * (1 - rc.secondFlourShare))), pct: pct(1 - rc.secondFlourShare) },
+          { name: rc.secondFlourName, note: rc.secondFlourNote, amount: String(r(flour * rc.secondFlourShare)), pct: pct(rc.secondFlourShare) } ]
+      : [ { name: rc.flourName, note: rc.flourNote, amount: String(r(flour)), pct: "100%" } ]
+    ).concat([
+      { name: "Water", note: rc.waterNote, amount: String(r(flour * rc.hydration)), pct: pct(rc.hydration) },
+      { name: "Yeast", note: rc.yeastNote, amount: (flour * rc.yeast).toFixed(1), pct: pct(rc.yeast) },
+      { name: "Salt", note: "", amount: String(r(flour * rc.salt)), pct: pct(rc.salt) },
+      { name: "Sugar", note: "", amount: String(r(flour * rc.sugar)), pct: pct(rc.sugar) },
+      { name: rc.oilName, note: "", amount: String(r(flour * rc.oil)), pct: pct(rc.oil) }
+    ]).filter(function (i) { return i.amount !== "0"; }),
+    doughType: rc.typeName,
+    rest: rc.rest,
     summary: input.count + " ball" + (input.count > 1 ? "s" : "") + ", " + input.size + '", ' + input.thickness,
     tip: tipFor(input),
-    steps: input.glutenFree ? GF_STEPS : REGULAR_STEPS
+    steps: rc.steps
   };
 }
 
 function tipFor(i) {
+  if (i.style === "tavern") {
+    if (i.size >= 16) return { title: "Rolling this thin", msg: 'A ' + i.size + '" round is a lot of rolling. Work from the center out and rest the dough if it fights back.' };
+    if (i.thickness === "thick") return { title: "Not really tavern", msg: "Tavern-style is meant to be cracker-thin. Thin or regular gets you closer to the real thing." };
+    return { title: "Dock it", msg: "Prick the rolled dough all over with a fork, then bake at 475\u00b0F on a stone or steel until the edges are deep brown." };
+  }
+  if (i.style === "neapolitan") {
+    if (i.size >= 14) return { title: "Bigger than intended", msg: 'This dough is built for 10\u201312". At ' + i.size + '" the rim gets thin, so stretch gently and expect a flatter edge.' };
+    return { title: "Leave the rim alone", msg: "Never press the outer inch. That untouched edge is what puffs into the cornicione." };
+  }
+  if (i.style === "newyork") {
+    if (i.size >= 18) return { title: "Going big", msg: 'At ' + i.size + '" make sure your peel and stone actually fit the pie before you stretch it.' };
+    return { title: "Heat is everything", msg: "Preheat the steel at 550\u00b0F convection for a full hour, then broil the last minute for char." };
+  }
   if (i.glutenFree) return { title: "Gluten-free", msg: "This dough is tacky. Oil your hands before you shape it." };
   if (i.size >= 18) return { title: "Large pizza", msg: 'At ' + i.size + '", give the oven a full 45-minute preheat at its highest setting.' };
   if (i.count >= 8) return { title: "Big batch", msg: "Shape all " + i.count + " balls in one go. They hold in the fridge for up to 4 days." };
-  if (i.thickness === "thick") return { title: "Thick crust", msg: "Bake at 450°F for 10–12 minutes rather than 6–8." };
-  if (i.thickness === "thin") return { title: "Thin crust", msg: "It's done in 4–5 minutes, so stay close to the oven." };
+  if (i.thickness === "thick") return { title: "Thick crust", msg: "Bake at 450\u00b0F for 10\u201312 minutes rather than 6\u20138." };
+  if (i.thickness === "thin") return { title: "Thin crust", msg: "It's done in 4\u20135 minutes, so stay close to the oven." };
   return null;
 }
 
 function shareText(input, r) {
-  var t = "PIZZA DOUGH\n" + input.count + "\u00d7 " + input.size + '" ' + input.thickness + ", " + r.ball + " g per ball\n\n";
+  var t = r.doughType.toUpperCase() + "\n" + input.count + "\u00d7 " + input.size + '" ' + input.thickness + ", " + r.ball + " g per ball\n\n";
   r.ingredients.forEach(function (i) { t += i.name + ": " + i.amount + " g\n"; });
   t += "\n" + r.rest + "\n\nSteps:\n";
   r.steps.forEach(function (s, n) { t += (n + 1) + ". " + s + "\n"; });
@@ -209,6 +327,7 @@ function shareText(input, r) {
 // --- UI ---
 var $ = function (id) { return document.getElementById(id); };
 var state = {
+  style: localStorage.getItem("style") || "classic",
   size: +(localStorage.getItem("size") || 16),
   count: +(localStorage.getItem("count") || 6),
   thickness: localStorage.getItem("thickness") || "regular",
@@ -237,9 +356,12 @@ function render() {
   if (r.tip) { $("tip").hidden = false; $("tiptitle").textContent = r.tip.title; $("tipmsg").textContent = r.tip.msg; }
   else { $("tip").hidden = true; }
 
-  $("stepstitle").textContent = state.glutenFree ? "How to make gluten-free dough" : "How to make the dough";
+  var name = r.doughType.toLowerCase();
+  $("stepstitle").textContent = "How to make " + (/dough$/.test(name) ? name : name + " dough");
+  $("gfrow").hidden = !supportsGF(state.style);
   $("steps").innerHTML = r.steps.map(function (s) { return "<li>" + s + "</li>"; }).join("");
 
+  localStorage.setItem("style", state.style);
   localStorage.setItem("size", state.size);
   localStorage.setItem("count", state.count);
   localStorage.setItem("thickness", state.thickness);
@@ -259,6 +381,8 @@ $("gf").checked = state.glutenFree;
     render();
   });
 });
+$("style").value = state.style;
+$("style").addEventListener("change", function (e) { state.style = e.target.value; render(); });
 $("size").addEventListener("input", function (e) { state.size = +e.target.value; render(); });
 $("count").addEventListener("input", function (e) { state.count = +e.target.value; render(); });
 $("gf").addEventListener("change", function (e) { state.glutenFree = e.target.checked; render(); });

@@ -70,19 +70,37 @@ None. SwiftUI/UIKit/Foundation only. Build tooling: Xcode 15+ and (optionally) X
 | `project.yml` | XcodeGen spec that generates `Proofed.xcodeproj` |
 
 ### Formula
+Every style scales the same way; only the constants differ (see `Recipe` in DoughCalculator.swift,
+mirrored by `RECIPES` in docs/index.html):
 ```
-flour = base * (size/16)^2 * (count/6) * (thicknessFactor/2.11)
-  base   = 1509.797685 * 480/425  (≈1705.19 g)  regular
-         = 1998 g                                gluten-free
-  factor = thin 1.8 | regular 2.11 | thick 2.75
-water = flour * (0.62 regular | 0.80 GF)
-yeast 0.4%  salt 2.5%  sugar 2%  olive oil 3.3%   (of flour)
-ball  = flour * (2550/1509.797685) / count
+flour = baseFlour * (size/refSize)^2 * (count/refCount) * (thicknessFactor/2.11)
+ball  = flour * doughRatio / count
+factor = thin 1.8 | regular 2.11 | thick 2.75
+
+              baseFlour  ref       hydration  yeast   salt    sugar   fat    doughRatio
+classic       1705.19 g  6 x 16"   62%        0.4%    2.5%    2%      3.3%   1.6890
+classic GF    1998 g     6 x 16"   80%        0.4%    2.5%    2%      3.3%   1.6890
+neapolitan    232 g      2 x 11"   73.28%     0.17%   3.45%   0.86%   none   1.7776
+new york      900 g      4 x 15"   64%        0.56%   3.44%   1.56%   3%     1.7256
+tavern        300 g      2 x 12"   50%        0.67%   2.33%   2.33%   10%    1.6533
 ```
+New York blends flour: 90% bread, 10% whole wheat (`secondFlourShare`). Neapolitan has no oil,
+and zero-weight rows are dropped from the table.
+
+Classic constants come from the reference site. Tavern comes from a published Chicago
+tavern-style recipe (300 g flour, 150 g water, 30 g oil/butter, 7 g sugar, 7 g salt,
+1-5 g instant yeast); 2 g yeast and "two 12in pizzas per batch" are our reading of it.
 Rounding mirrors JS `Math.round` (halves up) and yeast uses one decimal.
 
 ## 8. Common gotchas
-- Ball weight does not equal the sum of ingredients. It uses a fixed 1.689× dough-to-flour
+- Reference sizes are our reading of each source's yield: Neapolitan says two 10-12" pies
+  (we use 11"), New York says four 14-16" pies (we use 15"). New York's own 2 x 19" option is
+  not area-consistent with its 4 x 15" option, so big-pie numbers differ slightly from the source.
+- Only the classic dough has gluten-free numbers; other styles ignore the gluten-free toggle (no GF numbers exist for it), and the UI hides
+  the toggle for that style.
+- Tavern's "two 12in pizzas per 300 g flour" is an assumption, not from the source recipe.
+  Change `baseFlour`/`refCount` in one place if your pans say otherwise.
+- Classic only: ball weight does not equal the sum of ingredients. It uses a fixed 1.689× dough-to-flour
   ratio, while ingredients add up to 1.702× (regular) or 1.882× (GF). GF balls are therefore
   about 10% lighter than the dough you actually make. This is intentional parity with the web tool.
 - The web page's static HTML shows 425 / 1708 / 1059 as placeholders; its JavaScript replaces
