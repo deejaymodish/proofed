@@ -100,10 +100,6 @@ struct Recipe {
     var secondFlourShare: Double = 0
     var secondFlourName: String = ""
     var secondFlourNote: String = ""
-    /// Optional blended flour, as a share of total flour (0 = single flour).
-    var secondFlourShare: Double = 0
-    var secondFlourName: String = ""
-    var secondFlourNote: String = ""
     let waterNote: String
     let yeastNote: String
     let oilName: String
