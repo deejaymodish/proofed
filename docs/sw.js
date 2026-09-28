@@ -1,5 +1,5 @@
 // Cache-first service worker. Bump CACHE when you change any file below.
-const CACHE = 'proofed-v3';
+const CACHE = 'proofed-v5';
 const ASSETS = [
   './',
   'index.html',

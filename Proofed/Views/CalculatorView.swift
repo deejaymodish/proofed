@@ -7,6 +7,7 @@ struct CalculatorView: View {
     @AppStorage("count") private var count = 6
     @AppStorage("thickness") private var thicknessRaw = Thickness.regular.rawValue
     @AppStorage("glutenFree") private var glutenFree = false
+    @AppStorage("crunchy") private var crunchy = false
     @State private var showSteps = false
 
     private var input: DoughInput {
@@ -14,7 +15,8 @@ struct CalculatorView: View {
                    sizeInches: sizeInches.clamped(to: DoughInput.sizeRange),
                    count: count.clamped(to: DoughInput.countRange),
                    thickness: Thickness(rawValue: thicknessRaw) ?? .regular,
-                   glutenFree: glutenFree)
+                   glutenFree: glutenFree,
+                   crunchy: crunchy)
     }
 
     var body: some View {
@@ -67,6 +69,15 @@ struct CalculatorView: View {
                 .pickerStyle(.segmented)
             }
 
+            if input.style.supportsCrunchy {
+                Toggle(isOn: $crunchy) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Crunchy crust").font(.subheadline.weight(.semibold))
+                        Text("Semolina and malt, longer ferment, same chew")
+                            .font(.caption).foregroundStyle(Theme.muted)
+                    }
+                }
+            }
             if input.style.supportsGlutenFree {
                 Toggle(isOn: $glutenFree) {
                     VStack(alignment: .leading, spacing: 2) {

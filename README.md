@@ -81,10 +81,16 @@ factor = thin 1.8 | regular 2.11 | thick 2.75
 classic       1705.19 g  6 x 16"   62%        0.4%    2.5%    2%      3.3%   1.6890
 classic GF    1998 g     6 x 16"   80%        0.4%    2.5%    2%      3.3%   1.6890
 neapolitan    232 g      2 x 11"   73.28%     0.17%   3.45%   0.86%   none   1.7776
-new york      900 g      4 x 15"   64%        0.56%   3.44%   1.56%   3%     1.7256
+new york      900 g      4 x 15"   63.67%     0.56%   3.44%   1.89%   3%     1.7256
 tavern        300 g      2 x 12"   50%        0.67%   2.33%   2.33%   10%    1.6533
 ```
-New York blends flour: 90% bread, 10% whole wheat (`secondFlourShare`). Neapolitan has no oil,
+New York has a "Crunchy" variant (`newYorkCrunchy`, toggled per input): identical hydration, so
+the crumb stays chewy and open; 10% semolina is taken out of the bread flour, 0.5% diastatic malt
+is added, and the steps switch to a 48-72 hour ferment and a 500F bake. Only New York offers it.
+
+New York blends flour: 90% bread, 10% whole wheat (`secondFlourShare`), and uses honey as its
+sweetener (`sugarName`): 17 g honey replaces the source's 14 g sugar (honey is ~82% sugars),
+and the ~3 g of water honey carries is taken out of the water, 576 g -> 573 g. Neapolitan has no oil,
 and zero-weight rows are dropped from the table.
 
 Classic constants come from the reference site. Tavern comes from a published Chicago

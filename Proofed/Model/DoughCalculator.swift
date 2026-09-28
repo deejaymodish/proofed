@@ -35,6 +35,9 @@ enum Style: String, CaseIterable, Identifiable {
 
     /// Gluten-free numbers only exist for the classic dough.
     var supportsGlutenFree: Bool { self == .classic }
+
+    /// The crunchy variant (semolina + diastatic malt, longer ferment) is New York only.
+    var supportsCrunchy: Bool { self == .newYork }
 }
 
 struct DoughInput: Equatable {
@@ -43,12 +46,16 @@ struct DoughInput: Equatable {
     var count: Int = 6            // 1...10
     var thickness: Thickness = .regular
     var glutenFree: Bool = false
+    var crunchy: Bool = false
 
     static let sizeRange = 10...20
     static let countRange = 1...10
 
     /// Gluten-free is ignored by styles that have no GF recipe.
     var effectiveGlutenFree: Bool { style.supportsGlutenFree && glutenFree }
+
+    /// Crunchy is ignored by styles that have no crunchy variant.
+    var effectiveCrunchy: Bool { style.supportsCrunchy && crunchy }
 }
 
 // MARK: - Outputs
@@ -100,6 +107,15 @@ struct Recipe {
     var secondFlourShare: Double = 0
     var secondFlourName: String = ""
     var secondFlourNote: String = ""
+    /// Sweetener label and note; honey behaves like sugar in the math but is listed by name.
+    var sugarName: String = "Sugar"
+    var sugarNote: String = ""
+    /// Optional third flour, as a share of total flour (0 = none).
+    var thirdFlourShare: Double = 0
+    var thirdFlourName: String = ""
+    var thirdFlourNote: String = ""
+    /// Optional diastatic malt powder, as a share of flour (0 = none).
+    var malt: Double = 0
     let waterNote: String
     let yeastNote: String
     let oilName: String
@@ -196,21 +212,24 @@ extension Recipe {
         ]
     )
 
-    /// New York style: 900 g flour (10% whole wheat), 576 g water, 31 g salt, 14 g sugar,
-    /// 5 g instant yeast, 27 g olive oil. Reference batch is four 14-16" pies (about 400 g each).
+    /// New York style: 900 g flour (10% whole wheat), 31 g salt, 5 g instant yeast, 27 g olive oil.
+    /// The source uses 14 g sugar; we use honey instead. Honey is about 82% sugars and 17% water,
+    /// so 17 g honey carries the same sweetness and its ~3 g of water comes out of the 576 g,
+    /// leaving 573 g. Reference batch is four 14-16" pies (about 400 g each).
     static let newYork = Recipe(
         baseFlour: 900, refSize: 15, refCount: 4,
-        hydration: 576.0 / 900, yeast: 5.0 / 900, salt: 31.0 / 900,
-        sugar: 14.0 / 900, oil: 27.0 / 900,
-        doughRatio: 1 + (576.0 + 5 + 31 + 14 + 27) / 900,          // 1.7256
+        hydration: 573.0 / 900, yeast: 5.0 / 900, salt: 31.0 / 900,
+        sugar: 17.0 / 900, oil: 27.0 / 900,                        // honey, see note above
+        doughRatio: 1 + (573.0 + 5 + 31 + 17 + 27) / 900,          // 1.7256
         flourName: "Bread flour", flourNote: "High protein, 12-14%",
         secondFlourShare: 90.0 / 900, secondFlourName: "Whole wheat flour",
         secondFlourNote: "Freshly milled if you can",
+        sugarName: "Honey", sugarNote: "Stir into the water with the yeast",
         waterNote: "About 75F", yeastNote: "Instant (or 8 g fresh)", oilName: "Olive oil",
         typeName: "New York", restNote: "Cold ferment overnight, up to 24 hours",
         steps: [
-            "Mix the bread flour, whole wheat flour, sugar, and salt together.",
-            "Whisk the yeast into the water, then stir in the olive oil.",
+            "Mix the bread flour, whole wheat flour, and salt together.",
+            "Whisk the yeast and honey into the water, then stir in the olive oil.",
             "Pour the wet into the dry and mix to a shaggy dough.",
             "Knead 3-5 minutes, until smooth, and shape into a ball.",
             "Put it in a greased bowl, cover tightly, and refrigerate overnight.",
@@ -222,10 +241,38 @@ extension Recipe {
         ]
     )
 
+    /// New York, crunchy variant. Same hydration, so the crumb stays chewy and open; the shell
+    /// crisps from 10% semolina, 0.5% diastatic malt, a longer cold ferment and a slower bake.
+    static let newYorkCrunchy: Recipe = {
+        var r = newYork
+        r.secondFlourShare = 90.0 / 900          // whole wheat, unchanged
+        r.thirdFlourShare = 90.0 / 900           // semolina, taken out of the bread flour
+        r.thirdFlourName = "Semolina"
+        r.thirdFlourNote = "Fine durum, also for dusting the peel"
+        r.malt = 4.5 / 900
+        r.doughRatio = 1 + (573.0 + 5 + 31 + 17 + 27 + 4.5) / 900   // 1.7306
+        r.typeName = "New York, crunchy"
+        r.restNote = "Cold ferment 48-72 hours"
+        r.steps = [
+            "Mix the bread flour, whole wheat flour, semolina, salt, and malt powder together.",
+            "Whisk the yeast and honey into the water, then stir in the olive oil.",
+            "Pour the wet into the dry and mix to a shaggy dough.",
+            "Knead 3-5 minutes, until smooth, and shape into a ball.",
+            "Put it in a greased bowl, cover tightly, and refrigerate.",
+            "Divide and round into taut balls, seam underneath, on day two.",
+            "Cold ferment 48-72 hours total; the drier the surface gets, the better it crisps.",
+            "Preheat a steel at 550F convection for a full hour, then set the oven to 500F.",
+            "Open the dough by hand, leaving a 1/3 inch rim, and dust the peel with semolina.",
+            "Bake 8-9 minutes, then broil 60-90 seconds for color.",
+            "Cool on a wire rack for 2 minutes so the bottom stays crisp.",
+        ]
+        return r
+    }()
+
     static func `for`(_ input: DoughInput) -> Recipe {
         switch input.style {
         case .neapolitan: .neapolitan
-        case .newYork: .newYork
+        case .newYork: input.crunchy ? .newYorkCrunchy : .newYork
         case .tavern: .tavern
         case .classic: input.glutenFree ? .classicGlutenFree : .classic
         }
@@ -259,20 +306,31 @@ enum DoughCalculator {
                            bakersPercent: percent(recipe.yeast)),
             IngredientLine(name: "Salt", note: nil,
                            amount: "\(jsRound(flour * recipe.salt))", bakersPercent: percent(recipe.salt)),
-            IngredientLine(name: "Sugar", note: nil,
+            IngredientLine(name: recipe.sugarName,
+                           note: recipe.sugarNote.isEmpty ? nil : recipe.sugarNote,
                            amount: "\(jsRound(flour * recipe.sugar))", bakersPercent: percent(recipe.sugar)),
             IngredientLine(name: recipe.oilName, note: nil,
                            amount: "\(jsRound(flour * recipe.oil))", bakersPercent: percent(recipe.oil)),
         ]
         if recipe.oil == 0 { ingredients.removeLast() }
         if recipe.secondFlourShare > 0 {
-            let share = recipe.secondFlourShare
+            let others = recipe.secondFlourShare + recipe.thirdFlourShare
             ingredients[0] = IngredientLine(name: recipe.flourName, note: recipe.flourNote,
-                                            amount: "\(jsRound(flour * (1 - share)))",
-                                            bakersPercent: percent(1 - share))
+                                            amount: "\(jsRound(flour * (1 - others)))",
+                                            bakersPercent: percent(1 - others))
             ingredients.insert(IngredientLine(name: recipe.secondFlourName, note: recipe.secondFlourNote,
-                                              amount: "\(jsRound(flour * share))",
-                                              bakersPercent: percent(share)), at: 1)
+                                              amount: "\(jsRound(flour * recipe.secondFlourShare))",
+                                              bakersPercent: percent(recipe.secondFlourShare)), at: 1)
+            if recipe.thirdFlourShare > 0 {
+                ingredients.insert(IngredientLine(name: recipe.thirdFlourName, note: recipe.thirdFlourNote,
+                                                  amount: "\(jsRound(flour * recipe.thirdFlourShare))",
+                                                  bakersPercent: percent(recipe.thirdFlourShare)), at: 2)
+            }
+        }
+        if recipe.malt > 0 {
+            ingredients.append(IngredientLine(name: "Diastatic malt powder", note: "Browning and crisping",
+                                              amount: String(format: "%.1f", flour * recipe.malt),
+                                              bakersPercent: percent(recipe.malt)))
         }
 
         let summary = "\(input.count) ball\(input.count > 1 ? "s" : ""), \(input.sizeInches)\", \(input.thickness.rawValue)"
@@ -317,6 +375,10 @@ enum DoughCalculator {
             if input.sizeInches >= 18 {
                 return Tip(title: "Going big",
                            message: "At \(input.sizeInches)\" make sure your peel and stone actually fit the pie before you stretch it.")
+            }
+            if input.count >= 6 {
+                return Tip(title: "Weigh the honey",
+                           message: "Honey sticks to everything. Weigh it straight into the water so none stays in the spoon.")
             }
             return Tip(title: "Heat is everything",
                        message: "Preheat the steel at 550F convection for a full hour, then broil the last minute for char.")

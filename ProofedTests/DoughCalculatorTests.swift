@@ -5,9 +5,9 @@ import XCTest
 /// Tavern values scale the published 300 g / two 12" pizzas recipe.
 final class DoughCalculatorTests: XCTestCase {
     private func run(_ size: Int, _ count: Int, _ t: Thickness = .regular,
-                     style: Style = .classic, gf: Bool = false) -> DoughResult {
+                     style: Style = .classic, gf: Bool = false, crunchy: Bool = false) -> DoughResult {
         DoughCalculator.calculate(DoughInput(style: style, sizeInches: size, count: count,
-                                             thickness: t, glutenFree: gf))
+                                             thickness: t, glutenFree: gf, crunchy: crunchy))
     }
 
     private func amounts(_ r: DoughResult) -> [String] { r.ingredients.map(\.amount) }
@@ -115,12 +115,13 @@ final class DoughCalculatorTests: XCTestCase {
 
     // MARK: New York (blended flour)
 
-    /// Source recipe: 810 g bread + 90 g whole wheat, 576 g water, 31 g salt, 14 g sugar,
-    /// 5 g instant yeast, 27 g olive oil.
+    /// Source recipe with honey in place of its 14 g sugar: 810 g bread + 90 g whole wheat,
+    /// 573 g water, 31 g salt, 5 g instant yeast, 17 g honey, 27 g olive oil.
     func testNewYorkMatchesSourceRecipe() {
         let r = run(15, 4, style: .newYork)
-        XCTAssertEqual(amounts(r), ["810", "90", "576", "5.0", "31", "14", "27"])
-        XCTAssertEqual(percents(r), ["90%", "10%", "64%", "0.56%", "3.44%", "1.56%", "3%"])
+        XCTAssertEqual(amounts(r), ["810", "90", "573", "5.0", "31", "17", "27"])
+        XCTAssertEqual(percents(r), ["90%", "10%", "63.67%", "0.56%", "3.44%", "1.89%", "3%"])
+        XCTAssertEqual(r.ingredients[5].name, "Honey")
         XCTAssertEqual(r.flourGrams, 900)
         XCTAssertEqual(r.ballGrams, 388)
         XCTAssertEqual(r.tip?.title, "Heat is everything")
@@ -128,12 +129,52 @@ final class DoughCalculatorTests: XCTestCase {
 
     func testNewYorkScales() {
         let r = run(12, 2, style: .newYork)
-        XCTAssertEqual(amounts(r), ["259", "29", "184", "1.6", "10", "4", "9"])
+        XCTAssertEqual(amounts(r), ["259", "29", "183", "1.6", "10", "5", "9"])
         XCTAssertEqual(r.ballGrams, 248)
     }
 
     func testNewYorkBigTip() {
         XCTAssertEqual(run(18, 2, style: .newYork).tip?.title, "Going big")
+    }
+
+    func testNewYorkHoneyTipOnBigBatches() {
+        XCTAssertEqual(run(14, 6, style: .newYork).tip?.title, "Weigh the honey")
+    }
+
+    // MARK: New York, crunchy variant
+
+    /// Same hydration as plain New York (the chew is unchanged); 10% semolina comes out of the
+    /// bread flour and 0.5% diastatic malt is added.
+    func testCrunchyNewYork() {
+        let r = run(15, 4, style: .newYork, crunchy: true)
+        XCTAssertEqual(amounts(r), ["720", "90", "90", "573", "5.0", "31", "17", "27", "4.5"])
+        XCTAssertEqual(percents(r), ["80%", "10%", "10%", "63.67%", "0.56%", "3.44%", "1.89%", "3%", "0.5%"])
+        XCTAssertEqual(r.ballGrams, 389)
+        XCTAssertEqual(r.doughType, "New York, crunchy")
+        XCTAssertEqual(r.restNote, "Cold ferment 48-72 hours")
+        XCTAssertEqual(r.tip?.title, "Crisp comes from the bake")
+    }
+
+    func testCrunchyKeepsHydration() {
+        let plain = run(15, 4, style: .newYork)
+        let crunchy = run(15, 4, style: .newYork, crunchy: true)
+        XCTAssertEqual(plain.hydrationPercent, crunchy.hydrationPercent)
+        XCTAssertEqual(plain.waterGrams, crunchy.waterGrams)
+        XCTAssertEqual(plain.flourGrams, crunchy.flourGrams)
+    }
+
+    func testCrunchyScales() {
+        let r = run(12, 2, style: .newYork, crunchy: true)
+        XCTAssertEqual(amounts(r), ["230", "29", "29", "183", "1.6", "10", "5", "9", "1.4"])
+        XCTAssertEqual(r.ballGrams, 249)
+    }
+
+    func testOnlyNewYorkSupportsCrunchy() {
+        XCTAssertTrue(Style.newYork.supportsCrunchy)
+        for style in [Style.classic, .neapolitan, .tavern] {
+            XCTAssertFalse(style.supportsCrunchy)
+            XCTAssertEqual(run(12, 2, style: style, crunchy: true), run(12, 2, style: style))
+        }
     }
 
     func testOnlyClassicSupportsGlutenFree() {

@@ -117,6 +117,10 @@ button.share{
         <button data-v="thick" aria-pressed="false">Thick</button>
       </div>
     </div>
+    <div class="row toggle" id="crunchrow" hidden>
+      <label for="crunchy"><b style="font-size:14px">Crunchy crust</b><small>Semolina and malt, longer ferment, same chew</small></label>
+      <input type="checkbox" id="crunchy">
+    </div>
     <div class="row toggle" id="gfrow">
       <label for="gf"><b style="font-size:14px">Gluten-free</b><small>Uses GF flour and 80% hydration</small></label>
       <input type="checkbox" id="gf">
@@ -205,18 +209,21 @@ var RECIPES = {
       "Bake about 6 minutes on a steel or 7 on a stone, then broil 2\u20133 minutes until charred."
     ]
   },
-  // New York: 900 g flour (10% whole wheat), 576 g water, 31 g salt, 14 g sugar, 5 g yeast, 27 g oil; four 14-16" pies.
+  // New York: 900 g flour (10% whole wheat), 31 g salt, 5 g yeast, 27 g oil; four 14-16" pies.
+  // Honey replaces the source's 14 g sugar: 17 g honey matches the sweetness and brings ~3 g water,
+  // so hydration drops from 576 g to 573 g.
   newyork: {
     baseFlour: 900, refSize: 15, refCount: 4,
-    hydration: 576/900, yeast: 5/900, salt: 31/900, sugar: 14/900, oil: 27/900,
-    doughRatio: 1 + (576 + 5 + 31 + 14 + 27)/900,
+    hydration: 573/900, yeast: 5/900, salt: 31/900, sugar: 17/900, oil: 27/900,
+    doughRatio: 1 + (573 + 5 + 31 + 17 + 27)/900,
     flourName: "Bread flour", flourNote: "High protein, 12\u201314%",
     secondFlourShare: 90/900, secondFlourName: "Whole wheat flour", secondFlourNote: "Freshly milled if you can",
+    sugarName: "Honey", sugarNote: "Stir into the water with the yeast",
     waterNote: "About 75\u00b0F", yeastNote: "Instant (or 8 g fresh)", oilName: "Olive oil",
     typeName: "New York", rest: "Cold ferment overnight, up to 24 hours",
     steps: [
-      "Mix the bread flour, whole wheat flour, sugar, and salt together.",
-      "Whisk the yeast into the water, then stir in the olive oil.",
+      "Mix the bread flour, whole wheat flour, and salt together.",
+      "Whisk the yeast and honey into the water, then stir in the olive oil.",
       "Pour the wet into the dry and mix to a shaggy dough.",
       "Knead 3\u20135 minutes, until smooth, and shape into a ball.",
       "Put it in a greased bowl, cover tightly, and refrigerate overnight.",
@@ -228,6 +235,7 @@ var RECIPES = {
     ]
   },
   // Chicago tavern-style: reference batch is 300 g flour for two 12" pizzas.
+  // (newyorkCrunchy is derived from newyork below.)
   tavern: {
     baseFlour: 300, refSize: 12, refCount: 2,
     hydration: 0.50, yeast: 0.0067, salt: 0.0233, sugar: 0.0233, oil: 0.10,
@@ -249,12 +257,34 @@ var RECIPES = {
   }
 };
 
+// Crunchy New York: same hydration (chew stays), crisped with semolina, malt and a slower bake.
+RECIPES.newyorkCrunchy = Object.assign({}, RECIPES.newyork, {
+  thirdFlourShare: 90/900, thirdFlourName: "Semolina", thirdFlourNote: "Fine durum, also for dusting the peel",
+  malt: 4.5/900,
+  doughRatio: 1 + (573 + 5 + 31 + 17 + 27 + 4.5)/900,
+  typeName: "New York, crunchy", rest: "Cold ferment 48\u201372 hours",
+  steps: [
+    "Mix the bread flour, whole wheat flour, semolina, salt, and malt powder together.",
+    "Whisk the yeast and honey into the water, then stir in the olive oil.",
+    "Pour the wet into the dry and mix to a shaggy dough.",
+    "Knead 3\u20135 minutes, until smooth, and shape into a ball.",
+    "Put it in a greased bowl, cover tightly, and refrigerate.",
+    "Divide and round into taut balls, seam underneath, on day two.",
+    "Cold ferment 48\u201372 hours total; the drier the surface gets, the better it crisps.",
+    "Preheat a steel at 550\u00b0F convection for a full hour, then set the oven to 500\u00b0F.",
+    "Open the dough by hand, leaving a 1/3 inch rim, and dust the peel with semolina.",
+    "Bake 8\u20139 minutes, then broil 60\u201390 seconds for color.",
+    "Cool on a wire rack for 2 minutes so the bottom stays crisp."
+  ]
+});
+
 function supportsGF(style) { return style === "classic"; }
+function supportsCrunchy(style) { return style === "newyork"; }
 
 function recipeFor(input) {
   if (input.style === "tavern") return RECIPES.tavern;
   if (input.style === "neapolitan") return RECIPES.neapolitan;
-  if (input.style === "newyork") return RECIPES.newyork;
+  if (input.style === "newyork") return input.crunchy ? RECIPES.newyorkCrunchy : RECIPES.newyork;
   return input.glutenFree ? RECIPES.classicGF : RECIPES.classic;
 }
 
@@ -276,16 +306,17 @@ function calculate(input) {
     water: r(flour * rc.hydration),
     hydration: r(rc.hydration * 100),
     ingredients: (rc.secondFlourShare
-      ? [ { name: rc.flourName, note: rc.flourNote, amount: String(r(flour * (1 - rc.secondFlourShare))), pct: pct(1 - rc.secondFlourShare) },
+      ? [ { name: rc.flourName, note: rc.flourNote, amount: String(r(flour * (1 - rc.secondFlourShare - (rc.thirdFlourShare || 0)))), pct: pct(1 - rc.secondFlourShare - (rc.thirdFlourShare || 0)) },
           { name: rc.secondFlourName, note: rc.secondFlourNote, amount: String(r(flour * rc.secondFlourShare)), pct: pct(rc.secondFlourShare) } ]
+        .concat(rc.thirdFlourShare ? [ { name: rc.thirdFlourName, note: rc.thirdFlourNote, amount: String(r(flour * rc.thirdFlourShare)), pct: pct(rc.thirdFlourShare) } ] : [])
       : [ { name: rc.flourName, note: rc.flourNote, amount: String(r(flour)), pct: "100%" } ]
     ).concat([
       { name: "Water", note: rc.waterNote, amount: String(r(flour * rc.hydration)), pct: pct(rc.hydration) },
       { name: "Yeast", note: rc.yeastNote, amount: (flour * rc.yeast).toFixed(1), pct: pct(rc.yeast) },
       { name: "Salt", note: "", amount: String(r(flour * rc.salt)), pct: pct(rc.salt) },
-      { name: "Sugar", note: "", amount: String(r(flour * rc.sugar)), pct: pct(rc.sugar) },
+      { name: rc.sugarName || "Sugar", note: rc.sugarNote || "", amount: String(r(flour * rc.sugar)), pct: pct(rc.sugar) },
       { name: rc.oilName, note: "", amount: String(r(flour * rc.oil)), pct: pct(rc.oil) }
-    ]).filter(function (i) { return i.amount !== "0"; }),
+    ]).concat(rc.malt ? [ { name: "Diastatic malt powder", note: "Browning and crisping", amount: (flour * rc.malt).toFixed(1), pct: pct(rc.malt) } ] : []).filter(function (i) { return i.amount !== "0"; }),
     doughType: rc.typeName,
     rest: rc.rest,
     summary: input.count + " ball" + (input.count > 1 ? "s" : "") + ", " + input.size + '", ' + input.thickness,
@@ -305,6 +336,8 @@ function tipFor(i) {
     return { title: "Leave the rim alone", msg: "Never press the outer inch. That untouched edge is what puffs into the cornicione." };
   }
   if (i.style === "newyork") {
+    if (i.crunchy) return { title: "Crisp comes from the bake", msg: "Give it the full 48\u201372 hour ferment, bake at 500\u00b0F, and cool it on a rack. A plate steams the bottom soft." };
+    if (i.count >= 6) return { title: "Weigh the honey", msg: "Honey sticks to everything. Weigh it straight into the water so none stays in the spoon." };
     if (i.size >= 18) return { title: "Going big", msg: 'At ' + i.size + '" make sure your peel and stone actually fit the pie before you stretch it.' };
     return { title: "Heat is everything", msg: "Preheat the steel at 550\u00b0F convection for a full hour, then broil the last minute for char." };
   }
@@ -331,7 +364,8 @@ var state = {
   size: +(localStorage.getItem("size") || 16),
   count: +(localStorage.getItem("count") || 6),
   thickness: localStorage.getItem("thickness") || "regular",
-  glutenFree: localStorage.getItem("gf") === "1"
+  glutenFree: localStorage.getItem("gf") === "1",
+  crunchy: localStorage.getItem("crunchy") === "1"
 };
 
 function render() {
@@ -359,6 +393,7 @@ function render() {
   var name = r.doughType.toLowerCase();
   $("stepstitle").textContent = "How to make " + (/dough$/.test(name) ? name : name + " dough");
   $("gfrow").hidden = !supportsGF(state.style);
+  $("crunchrow").hidden = !supportsCrunchy(state.style);
   $("steps").innerHTML = r.steps.map(function (s) { return "<li>" + s + "</li>"; }).join("");
 
   localStorage.setItem("style", state.style);
@@ -366,11 +401,14 @@ function render() {
   localStorage.setItem("count", state.count);
   localStorage.setItem("thickness", state.thickness);
   localStorage.setItem("gf", state.glutenFree ? "1" : "0");
+  localStorage.setItem("crunchy", state.crunchy ? "1" : "0");
 }
 
 $("size").value = state.size;
 $("count").value = state.count;
 $("gf").checked = state.glutenFree;
+$("crunchy").checked = state.crunchy;
+$("crunchy").addEventListener("change", function (e) { state.crunchy = e.target.checked; render(); });
 [].forEach.call($("thickness").children, function (b) {
   b.setAttribute("aria-pressed", String(b.dataset.v === state.thickness));
   b.addEventListener("click", function () {
