@@ -300,7 +300,7 @@ enum DoughCalculator {
             IngredientLine(name: recipe.flourName, note: recipe.flourNote,
                            amount: "\(flourRounded)", bakersPercent: "100%"),
             IngredientLine(name: "Water", note: recipe.waterNote,
-                           amount: "\(water)", bakersPercent: "\(hydrationPct)%"),
+                           amount: "\(water)", bakersPercent: percent(recipe.hydration)),
             IngredientLine(name: "Yeast", note: recipe.yeastNote,
                            amount: String(format: "%.1f", flour * recipe.yeast),
                            bakersPercent: percent(recipe.yeast)),
@@ -372,6 +372,10 @@ enum DoughCalculator {
                        message: "Never press the outer inch. That untouched edge is what puffs into the cornicione.")
         }
         if input.style == .newYork {
+            if input.effectiveCrunchy {
+                return Tip(title: "Crisp comes from the bake",
+                           message: "Give it the full 48-72 hour ferment, bake at 500F, and cool it on a rack. A plate steams the bottom soft.")
+            }
             if input.sizeInches >= 18 {
                 return Tip(title: "Going big",
                            message: "At \(input.sizeInches)\" make sure your peel and stone actually fit the pie before you stretch it.")
