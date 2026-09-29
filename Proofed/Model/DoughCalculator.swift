@@ -100,7 +100,7 @@ struct Recipe {
     let sugar: Double
     let oil: Double
     /// Total dough weight as a multiple of flour weight, used for ball size.
-    let doughRatio: Double
+    var doughRatio: Double
     let flourName: String
     let flourNote: String
     /// Optional blended flour, as a share of total flour (0 = single flour).
@@ -119,9 +119,9 @@ struct Recipe {
     let waterNote: String
     let yeastNote: String
     let oilName: String
-    let typeName: String
-    let restNote: String
-    let steps: [String]
+    var typeName: String
+    var restNote: String
+    var steps: [String]
 }
 
 extension Recipe {
@@ -244,7 +244,7 @@ extension Recipe {
     /// New York, crunchy variant. Same hydration, so the crumb stays chewy and open; the shell
     /// crisps from 10% semolina, 0.5% diastatic malt, a longer cold ferment and a slower bake.
     static let newYorkCrunchy: Recipe = {
-        var r = newYork
+        var r = Recipe.newYork
         r.secondFlourShare = 90.0 / 900          // whole wheat, unchanged
         r.thirdFlourShare = 90.0 / 900           // semolina, taken out of the bread flour
         r.thirdFlourName = "Semolina"
