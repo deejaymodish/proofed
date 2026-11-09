@@ -127,7 +127,7 @@ struct Recipe {
     let hydration: Double       // water as a share of flour
     let yeast: Double
     let salt: Double
-    let sugar: Double
+    var sugar: Double
     let oil: Double
     /// Total dough weight as a multiple of flour weight, used for ball size.
     var doughRatio: Double
