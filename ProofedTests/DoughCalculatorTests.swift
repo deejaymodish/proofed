@@ -5,9 +5,11 @@ import XCTest
 /// Tavern values scale the published 300 g / two 12" pizzas recipe.
 final class DoughCalculatorTests: XCTestCase {
     private func run(_ size: Int, _ count: Int, _ t: Thickness = .regular,
-                     style: Style = .classic, gf: Bool = false, crunchy: Bool = false) -> DoughResult {
+                     style: Style = .classic, gf: Bool = false, crunchy: Bool = false,
+                     sourdough: Bool = false, oven: Oven = .home) -> DoughResult {
         DoughCalculator.calculate(DoughInput(style: style, sizeInches: size, count: count,
-                                             thickness: t, glutenFree: gf, crunchy: crunchy))
+                                             thickness: t, glutenFree: gf, crunchy: crunchy,
+                                             sourdough: sourdough, oven: oven))
     }
 
     private func amounts(_ r: DoughResult) -> [String] { r.ingredients.map(\.amount) }
@@ -183,6 +185,139 @@ final class DoughCalculatorTests: XCTestCase {
             XCTAssertFalse(style.supportsGlutenFree)
             XCTAssertEqual(run(12, 2, style: style, gf: true), run(12, 2, style: style))
         }
+    }
+
+    // MARK: Sourdough
+
+    /// 20% starter at 100% hydration replaces the yeast. The starter's 10% flour comes out of the
+    /// bread flour and its 10% water out of the added water, so the totals do not move.
+    func testClassicSourdough() {
+        let r = run(16, 6, sourdough: true)
+        XCTAssertEqual(amounts(r), ["1535", "341", "887", "43", "34", "56"])
+        XCTAssertEqual(percents(r), ["90%", "20%", "52%", "2.5%", "2%", "3.3%"])
+        XCTAssertEqual(r.ballGrams, 479)
+        XCTAssertEqual(r.doughType, "Sourdough")
+        XCTAssertEqual(r.restNote, "Bulk 4-6 hours, then cold ferment 1-3 days")
+        XCTAssertEqual(r.tip?.title, "Use the starter at its peak")
+        XCTAssertFalse(r.ingredients.contains { $0.name == "Yeast" })
+    }
+
+    /// The dough is the same dough: same total flour, same total water, same hydration.
+    func testSourdoughKeepsTotals() {
+        for style in [Style.classic, .neapolitan, .newYork] {
+            let plain = run(14, 4, style: style)
+            let sour = run(14, 4, style: style, sourdough: true)
+            XCTAssertEqual(plain.flourGrams, sour.flourGrams)
+            XCTAssertEqual(plain.waterGrams, sour.waterGrams)
+            XCTAssertEqual(plain.hydrationPercent, sour.hydrationPercent)
+        }
+    }
+
+    func testNeapolitanSourdough() {
+        let r = run(11, 2, style: .neapolitan, sourdough: true)
+        XCTAssertEqual(amounts(r), ["209", "46", "147", "8", "2"])   // no oil row
+        XCTAssertEqual(percents(r), ["90%", "20%", "63.28%", "3.45%", "0.86%"])
+        XCTAssertEqual(r.ballGrams, 206)
+        XCTAssertEqual(r.doughType, "Neapolitan sourdough")
+        XCTAssertEqual(r.tip?.title, "Go by the dough, not the clock")
+    }
+
+    func testNewYorkSourdough() {
+        let r = run(15, 4, style: .newYork, sourdough: true)
+        XCTAssertEqual(amounts(r), ["720", "90", "180", "483", "31", "17", "27"])
+        XCTAssertEqual(percents(r), ["80%", "10%", "20%", "53.67%", "3.44%", "1.89%", "3%"])
+        XCTAssertEqual(r.ballGrams, 387)
+        XCTAssertEqual(r.doughType, "New York sourdough")
+    }
+
+    func testNewYorkCrunchySourdough() {
+        let r = run(15, 4, style: .newYork, crunchy: true, sourdough: true)
+        XCTAssertEqual(amounts(r), ["630", "90", "90", "180", "483", "31", "17", "27", "4.5"])
+        XCTAssertEqual(r.ballGrams, 388)
+        XCTAssertEqual(r.doughType, "New York sourdough, crunchy")
+    }
+
+    func testTavernIgnoresSourdough() {
+        XCTAssertFalse(Style.tavern.supportsSourdough)
+        XCTAssertEqual(run(12, 2, style: .tavern, sourdough: true), run(12, 2, style: .tavern))
+    }
+
+    func testGlutenFreeIgnoresSourdough() {
+        XCTAssertEqual(run(16, 6, gf: true, sourdough: true), run(16, 6, gf: true))
+    }
+
+    func testEveryStyleButTavernSupportsSourdough() {
+        for style in [Style.classic, .neapolitan, .newYork] {
+            XCTAssertTrue(style.supportsSourdough)
+            XCTAssertNotEqual(run(12, 2, style: style, sourdough: true), run(12, 2, style: style))
+        }
+    }
+
+    // MARK: Oven
+
+    /// A live-fire oven browns on its own, so the honey is capped at 0.5% and the malt dropped.
+    func testPizzaOvenCutsBrowningAgents() {
+        let home = run(15, 4, style: .newYork)
+        let fire = run(15, 4, style: .newYork, oven: .pizzaOven)
+        XCTAssertEqual(home.ingredients.first { $0.name == "Honey" }?.amount, "17")
+        XCTAssertEqual(fire.ingredients.first { $0.name == "Honey" }?.amount, "5")
+        XCTAssertEqual(fire.ingredients.first { $0.name == "Honey" }?.bakersPercent, "0.5%")
+        // Flour, water and hydration are dough properties and do not depend on the oven.
+        XCTAssertEqual(home.flourGrams, fire.flourGrams)
+        XCTAssertEqual(home.waterGrams, fire.waterGrams)
+        XCTAssertEqual(home.hydrationPercent, fire.hydrationPercent)
+    }
+
+    func testPizzaOvenDropsMaltEntirely() {
+        let fire = run(15, 4, style: .newYork, crunchy: true, oven: .pizzaOven)
+        XCTAssertFalse(fire.ingredients.contains { $0.name.contains("malt") })
+        XCTAssertTrue(fire.ingredients.contains { $0.name == "Semolina" })   // semolina still helps
+        // The mixing step must not name an ingredient that is no longer in the recipe.
+        XCTAssertFalse(fire.steps.contains { $0.lowercased().contains("malt") })
+    }
+
+    /// Removing sweetener and malt takes real mass out, so the ball gets slightly lighter.
+    func testPizzaOvenBallReflectsRemovedMass() {
+        XCTAssertEqual(run(15, 4, style: .newYork).ballGrams, 388)
+        XCTAssertEqual(run(15, 4, style: .newYork, oven: .pizzaOven).ballGrams, 385)
+        XCTAssertEqual(run(16, 6).ballGrams, 480)
+        XCTAssertEqual(run(16, 6, oven: .pizzaOven).ballGrams, 476)
+    }
+
+    /// Neapolitan is the one style a dome oven was built for: hot and fast, not cool and slow.
+    func testNeapolitanGetsHotFastMethod() {
+        let fire = run(11, 2, style: .neapolitan, oven: .pizzaOven)
+        XCTAssertEqual(fire.tip?.title, "This is the oven for it")
+        XCTAssertTrue(fire.steps.contains { $0.contains("750-850F") })
+        XCTAssertTrue(fire.steps.contains { $0.contains("60-90 seconds") })
+    }
+
+    /// New York in the same oven gets the opposite advice.
+    func testNewYorkGetsStarveTheFireMethod() {
+        let fire = run(16, 4, style: .newYork, oven: .pizzaOven)
+        XCTAssertEqual(fire.tip?.title, "Starve the fire")
+        XCTAssertTrue(fire.steps.contains { $0.contains("Cut the flame") })
+        XCTAssertTrue(fire.steps.contains { $0.contains("550-600F") })
+        XCTAssertTrue(fire.steps.contains { $0.contains("6-8 minutes") })
+    }
+
+    func testEveryStyleAndOvenHasBakeSteps() {
+        for style in Style.allCases {
+            for oven in Oven.allCases {
+                let r = run(14, 2, style: style, oven: oven)
+                XCTAssertFalse(r.steps.isEmpty)
+                XCTAssertTrue(r.steps.contains { $0.lowercased().contains("bake")
+                                              || $0.lowercased().contains("launch") },
+                              "\(style.rawValue)/\(oven.rawValue) has no bake step")
+            }
+        }
+    }
+
+    /// The home oven is the default and nothing about it changed.
+    func testHomeOvenIsUnchanged() {
+        let r = run(16, 6)
+        XCTAssertEqual(r.ballGrams, 480)
+        XCTAssertEqual(amounts(r), ["1705", "1057", "6.8", "43", "34", "56"])
     }
 
     func testJSRoundHalvesGoUp() {

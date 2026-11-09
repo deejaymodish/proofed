@@ -8,6 +8,8 @@ struct CalculatorView: View {
     @AppStorage("thickness") private var thicknessRaw = Thickness.regular.rawValue
     @AppStorage("glutenFree") private var glutenFree = false
     @AppStorage("crunchy") private var crunchy = false
+    @AppStorage("sourdough") private var sourdough = false
+    @AppStorage("oven") private var ovenRaw = Oven.home.rawValue
     @State private var showSteps = false
 
     private var input: DoughInput {
@@ -16,7 +18,9 @@ struct CalculatorView: View {
                    count: count.clamped(to: DoughInput.countRange),
                    thickness: Thickness(rawValue: thicknessRaw) ?? .regular,
                    glutenFree: glutenFree,
-                   crunchy: crunchy)
+                   crunchy: crunchy,
+                   sourdough: sourdough,
+                   oven: Oven(rawValue: ovenRaw) ?? .home)
     }
 
     var body: some View {
@@ -58,6 +62,14 @@ struct CalculatorView: View {
                 .labelsHidden()
             }
 
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Oven").font(.subheadline.weight(.semibold))
+                Picker("Oven", selection: $ovenRaw) {
+                    ForEach(Oven.allCases) { Text($0.label).tag($0.rawValue) }
+                }
+                .pickerStyle(.segmented)
+            }
+
             SliderRow(title: "Pizza size", value: $sizeInches, range: DoughInput.sizeRange, unit: "\"")
             SliderRow(title: "Number of pizzas", value: $count, range: DoughInput.countRange, unit: "")
 
@@ -69,6 +81,15 @@ struct CalculatorView: View {
                 .pickerStyle(.segmented)
             }
 
+            if input.style.supportsSourdough && !input.effectiveGlutenFree {
+                Toggle(isOn: $sourdough) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Sourdough").font(.subheadline.weight(.semibold))
+                        Text("20% starter in place of yeast, longer ferment")
+                            .font(.caption).foregroundStyle(Theme.muted)
+                    }
+                }
+            }
             if input.style.supportsCrunchy {
                 Toggle(isOn: $crunchy) {
                     VStack(alignment: .leading, spacing: 2) {

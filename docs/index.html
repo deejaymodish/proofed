@@ -102,6 +102,13 @@ button.share{
       </select>
     </div>
     <div class="row">
+      <div class="rowhead"><b>Oven</b></div>
+      <div class="seg" id="oven" role="group" aria-label="Oven">
+        <button data-v="home" aria-pressed="true">Home oven</button>
+        <button data-v="pizzaOven" aria-pressed="false">Pizza oven</button>
+      </div>
+    </div>
+    <div class="row">
       <div class="rowhead"><b>Pizza size</b><span id="sizeout">16"</span></div>
       <input type="range" id="size" min="10" max="20" step="1" value="16" aria-label="Pizza size in inches">
     </div>
@@ -116,6 +123,10 @@ button.share{
         <button data-v="regular" aria-pressed="true">Regular</button>
         <button data-v="thick" aria-pressed="false">Thick</button>
       </div>
+    </div>
+    <div class="row toggle" id="sourrow" hidden>
+      <label for="sourdough"><b style="font-size:14px">Sourdough</b><small>20% starter in place of yeast, longer ferment</small></label>
+      <input type="checkbox" id="sourdough">
     </div>
     <div class="row toggle" id="crunchrow" hidden>
       <label for="crunchy"><b style="font-size:14px">Crunchy crust</b><small>Semolina and malt, longer ferment, same chew</small></label>
@@ -160,7 +171,7 @@ var RECIPES = {
     flourName: "Bread flour", flourNote: "12\u201314% protein",
     waterNote: "Cold, below 60\u00b0F", yeastNote: "Active dry", oilName: "Olive oil",
     typeName: "Regular dough", rest: "Cold ferment 2\u20134 days",
-    steps: [
+    doughSteps: [
       "Chill the water to below 60\u00b0F.",
       "Stir the yeast into the water.",
       "Add the flour and olive oil; mix for 2 minutes.",
@@ -179,7 +190,7 @@ var RECIPES = {
     flourName: "Gluten-free flour", flourNote: "A pizza-specific GF blend works best",
     waterNote: "Cold, below 60\u00b0F", yeastNote: "Active dry", oilName: "Olive oil",
     typeName: "Gluten-free", rest: "Chill up to 48 hours",
-    steps: [
+    doughSteps: [
       "Combine the cold water and yeast.",
       "Add the GF flour and olive oil; mix for 2 minutes.",
       "Add the sugar and salt; mix for 3\u20134 minutes.",
@@ -197,16 +208,12 @@ var RECIPES = {
     flourName: "\u201c00\u201d pizza flour", flourNote: "Bread flour also works",
     waterNote: "Lukewarm, 105\u2013115\u00b0F", yeastNote: "Instant or active dry", oilName: "Olive oil",
     typeName: "Neapolitan", rest: "Rise 12\u201324 hours at room temp",
-    steps: [
+    doughSteps: [
       "Mix the flour, yeast, sugar, and salt, then stir in the lukewarm water.",
       "Stop as soon as it holds together as a rough dough.",
       "Cover and leave it at room temperature for 12\u201324 hours. It gets puffy, not doubled.",
-      "Preheat the oven to 500\u2013550\u00b0F with a steel or stone inside for at least 30 minutes.",
       "Divide the dough and stretch and fold each piece on all four sides.",
       "Tuck the edges under into a smooth ball, seam down, and rest 45\u201360 minutes.",
-      "Press the dough out with your fingertips, leaving the outer edge untouched.",
-      "Stretch it to 10\u201312\" on a floured peel, letting gravity do the work.",
-      "Bake about 6 minutes on a steel or 7 on a stone, then broil 2\u20133 minutes until charred."
     ]
   },
   // New York: 900 g flour (10% whole wheat), 31 g salt, 5 g yeast, 27 g oil; four 14-16" pies.
@@ -221,7 +228,7 @@ var RECIPES = {
     sugarName: "Honey", sugarNote: "Stir into the water with the yeast",
     waterNote: "About 75\u00b0F", yeastNote: "Instant (or 8 g fresh)", oilName: "Olive oil",
     typeName: "New York", rest: "Cold ferment overnight, up to 24 hours",
-    steps: [
+    doughSteps: [
       "Mix the bread flour, whole wheat flour, and salt together.",
       "Whisk the yeast and honey into the water, then stir in the olive oil.",
       "Pour the wet into the dry and mix to a shaggy dough.",
@@ -229,9 +236,6 @@ var RECIPES = {
       "Put it in a greased bowl, cover tightly, and refrigerate overnight.",
       "Divide, then round each piece into a taut ball with the seam underneath.",
       "Chill until needed, or proof at room temperature about 3.5 hours to bake today.",
-      "Preheat a steel or stone at 550\u00b0F convection for a full hour.",
-      "Open the dough by hand, leaving a 1/3 inch rim, then stretch it over your fists.",
-      "Sauce, cheese, bake about 7 minutes, then broil 1 minute for char."
     ]
   },
   // Chicago tavern-style: reference batch is 300 g flour for two 12" pizzas.
@@ -243,7 +247,7 @@ var RECIPES = {
     flourName: "Bread or all-purpose flour", flourNote: "Either works; bread flour is chewier",
     waterNote: "Ice cold", yeastNote: "Instant", oilName: "Neutral oil or melted butter",
     typeName: "Tavern-style", rest: "Cold ferment 24\u201348 hours",
-    steps: [
+    doughSteps: [
       "Whisk the flour, sugar, salt, and instant yeast together.",
       "Pour in the ice-cold water and the oil or melted butter.",
       "Mix until it comes together as a shaggy, stiff ball.",
@@ -251,8 +255,6 @@ var RECIPES = {
       "Put it in a lightly oiled container and cover it tightly.",
       "Refrigerate for 24\u201348 hours.",
       "Take it out and let it sit for 30 minutes.",
-      "Roll it very thin on a surface dusted with cornmeal or semolina.",
-      "Dock the dough all over with a fork so it doesn't bubble."
     ]
   }
 };
@@ -263,7 +265,7 @@ RECIPES.newyorkCrunchy = Object.assign({}, RECIPES.newyork, {
   malt: 4.5/900,
   doughRatio: 1 + (573 + 5 + 31 + 17 + 27 + 4.5)/900,
   typeName: "New York, crunchy", rest: "Cold ferment 48\u201372 hours",
-  steps: [
+  doughSteps: [
     "Mix the bread flour, whole wheat flour, semolina, salt, and malt powder together.",
     "Whisk the yeast and honey into the water, then stir in the olive oil.",
     "Pour the wet into the dry and mix to a shaggy dough.",
@@ -271,26 +273,201 @@ RECIPES.newyorkCrunchy = Object.assign({}, RECIPES.newyork, {
     "Put it in a greased bowl, cover tightly, and refrigerate.",
     "Divide and round into taut balls, seam underneath, on day two.",
     "Cold ferment 48\u201372 hours total; the drier the surface gets, the better it crisps.",
+  ]
+});
+
+// Sourdough: 20% starter at 100% hydration swapped in for the commercial yeast. Total flour,
+// total water and hydration stay put; the starter's flour and water come out of what you weigh.
+var STARTER_SHARE = 0.20;
+var STARTER_PREP = "Feed your starter 4\u20136 hours ahead. It is ready when it has domed and a spoonful floats.";
+
+function sourdoughOf(base, typeName, rest, steps) {
+  return Object.assign({}, base, {
+    starterShare: STARTER_SHARE,
+    starterNote: "100% hydration, fed and at its peak",
+    doughRatio: base.doughRatio - base.yeast,
+    typeName: typeName, rest: rest,
+    doughSteps: [STARTER_PREP].concat(steps)
+  });
+}
+
+RECIPES.classicSour = sourdoughOf(RECIPES.classic, "Sourdough", "Bulk 4\u20136 hours, then cold ferment 1\u20133 days", [
+  "Mix the starter into cool water until it is milky.",
+  "Add the flour and olive oil; mix for 2 minutes, then rest 20 minutes.",
+  "Add the sugar and salt and mix until the dough is smooth and elastic.",
+  "Bulk ferment 4\u20136 hours at room temperature, folding it over twice in the first 2 hours.",
+  "Divide into balls and pinch the seams closed.",
+  "Refrigerate 1\u20133 days; day 2 is the sweet spot.",
+  "Let the balls come to room temperature, 2\u20133 hours, before stretching."
+]);
+
+RECIPES.neapolitanSour = sourdoughOf(RECIPES.neapolitan, "Neapolitan sourdough", "Rise 16\u201320 hours at room temp", [
+  "Stir the starter into lukewarm water, then add the flour, sugar, and salt.",
+  "Mix until it holds together as a rough dough and leave it 30 minutes.",
+  "Fold it over on itself a few times, then cover it.",
+  "Leave it at room temperature 12\u201316 hours, until it is puffy and domed.",
+  "Divide, shape into tight balls, and rest them 3\u20134 hours more.",
+]);
+
+RECIPES.newyorkSour = sourdoughOf(RECIPES.newyork, "New York sourdough", "Bulk 4\u20135 hours, then cold ferment 1\u20132 days", [
+  "Mix the bread flour, whole wheat flour, and salt together.",
+  "Whisk the starter and honey into the water, then stir in the olive oil.",
+  "Pour the wet into the dry and mix to a shaggy dough; rest 20 minutes.",
+  "Knead 3\u20135 minutes, until smooth, and shape into a ball.",
+  "Bulk ferment 4\u20135 hours at room temperature, folding it twice early on.",
+  "Divide, then round each piece into a taut ball with the seam underneath.",
+  "Refrigerate 24\u201348 hours.",
+]);
+
+RECIPES.newyorkCrunchySour = sourdoughOf(RECIPES.newyorkCrunchy, "New York sourdough, crunchy", "Bulk 4\u20135 hours, then cold ferment 2\u20133 days", [
+  "Mix the bread flour, whole wheat flour, semolina, salt, and malt powder together.",
+  "Whisk the starter and honey into the water, then stir in the olive oil.",
+  "Pour the wet into the dry and mix to a shaggy dough; rest 20 minutes.",
+  "Knead 3\u20135 minutes, until smooth, and shape into a ball.",
+  "Bulk ferment 4\u20135 hours at room temperature, folding it twice early on.",
+  "Divide and round into taut balls, seam underneath.",
+  "Cold ferment 48\u201372 hours; the drier the surface gets, the better it crisps.",
+]);
+
+// Everything from "the balls are ready" onward depends on the oven, not the dough. A home oven is
+// mostly conduction from a steel. A live-fire dome oven is mostly radiant heat from the flame and
+// roof, which inflates the rim and scorches the top long before the base crisps -- so for every
+// style but Neapolitan the method is to preheat hard, then bake on stored stone heat.
+var BAKE_STEPS = {
+  "neapolitan|home": [
+    "Preheat the oven to 500\u2013550\u00b0F with a steel or stone inside for at least 30 minutes.",
+    "Press the dough out with your fingertips, leaving the outer edge untouched.",
+    "Stretch it to 10\u201312\" on a floured peel, letting gravity do the work.",
+    "Bake about 6 minutes on a steel or 7 on a stone, then broil 2\u20133 minutes until charred."
+  ],
+  "neapolitan|pizzaOven": [
+    "Run the oven hot and keep the flame up. You want the stone at 750\u2013850\u00b0F.",
+    "Press the dough out with your fingertips, leaving the outer edge untouched.",
+    "Stretch it to 10\u201312\" on a semolina-dusted peel, letting gravity do the work.",
+    "Launch and bake 60\u201390 seconds, turning every 20\u201330 seconds.",
+    "Pull it when the rim is puffed and leopard-spotted. Let the stone recover before the next one."
+  ],
+  "newyork|home": [
+    "Preheat a steel or stone at 550\u00b0F convection for a full hour.",
+    "Open the dough by hand, leaving a 1/3 inch rim, then stretch it over your fists.",
+    "Sauce, cheese, bake about 7 minutes, then broil 1 minute for char.",
+    "Cool on a wire rack for 2 minutes so the bottom stays crisp."
+  ],
+  "newyorkCrunchy|home": [
     "Preheat a steel at 550\u00b0F convection for a full hour, then set the oven to 500\u00b0F.",
     "Open the dough by hand, leaving a 1/3 inch rim, and dust the peel with semolina.",
     "Bake 8\u20139 minutes, then broil 60\u201390 seconds for color.",
     "Cool on a wire rack for 2 minutes so the bottom stays crisp."
+  ],
+  "newyork|pizzaOven": [
+    "Run the oven to full temperature so the stone is saturated with heat.",
+    "Cut the flame to minimum or off and let it settle 10\u201315 minutes. The stone stays hot; the dome cools.",
+    "Check the stone with an infrared thermometer before you launch: you want 550\u2013600\u00b0F, not higher.",
+    "Open the dough to within 1/4 inch of the edge, pressing the gas out toward the rim, not into it.",
+    "Stretch it the whole way to size on a semolina-dusted peel. Measure it the first few times.",
+    "Launch and bake 6\u20138 minutes, turning every 60\u201390 seconds and keeping it away from the flame.",
+    "If the top colors before the base sets, the dome is still too hot. Let it fall further next time.",
+    "Relight between pies to recover the stone, then cut the flame again before the next launch.",
+    "Cool on a wire rack for 2 minutes so the bottom stays crisp."
+  ],
+  "tavern|home": [
+    "Preheat a stone or steel at 475\u00b0F for at least 45 minutes.",
+    "Roll it very thin on a surface dusted with cornmeal or semolina.",
+    "Dock the dough all over with a fork so it doesn't bubble.",
+    "Bake 10\u201312 minutes, until the edges are deep brown and the base snaps."
+  ],
+  "tavern|pizzaOven": [
+    "Preheat, then cut the flame and let the oven fall back. You want the stone near 500\u00b0F.",
+    "Roll it very thin on a surface dusted with cornmeal or semolina.",
+    "Dock the dough all over with a fork so it doesn't bubble.",
+    "Bake 5\u20137 minutes, turning often. This dough is thin enough to scorch in seconds."
+  ],
+  "classic|home": [
+    "Preheat a steel or stone at 500\u2013550\u00b0F for a full hour.",
+    "Open the dough, leaving a thin rim, and dust the peel with semolina.",
+    "Bake 6\u20138 minutes, until the edges have browned and the base is set.",
+    "Cool on a wire rack for 2 minutes before slicing."
+  ],
+  "classic|pizzaOven": [
+    "Run the oven to full temperature, then cut the flame and let it settle 10 minutes.",
+    "Aim for a stone around 600\u00b0F; much hotter and the top burns before the base crisps.",
+    "Open the dough, leaving a thin rim, and dust the peel with semolina.",
+    "Bake 4\u20136 minutes, turning every minute.",
+    "Cool on a wire rack for 2 minutes before slicing."
   ]
-});
+};
+
+function bakeStepsFor(i) {
+  if (i.style === "newyork" && i.crunchy && i.oven === "home") return BAKE_STEPS["newyorkCrunchy|home"];
+  return BAKE_STEPS[i.style + "|" + i.oven] || BAKE_STEPS[i.style + "|home"];
+}
+
+// Sugar and diastatic malt help a 550F home oven brown. A dome oven browns on its own, and they
+// scorch the top before the base crisps -- so cap the sweetener and drop the malt for live fire.
+var LIVE_FIRE_SUGAR_CAP = 0.005;
+function liveFireOf(rc) {
+  var newSugar = Math.min(rc.sugar, LIVE_FIRE_SUGAR_CAP);
+  var out = Object.assign({}, rc, {
+    sugar: newSugar,
+    malt: 0,
+    doughRatio: rc.doughRatio - (rc.sugar - newSugar) - (rc.malt || 0)
+  });
+  if (rc.malt) {
+    // The mixing step names the malt, so it has to stop naming it.
+    out.doughSteps = rc.doughSteps.map(function (s) {
+      return s === "Mix the bread flour, whole wheat flour, semolina, salt, and malt powder together."
+        ? "Mix the bread flour, whole wheat flour, semolina, and salt together." : s;
+    });
+  }
+  return out;
+}
 
 function supportsGF(style) { return style === "classic"; }
 function supportsCrunchy(style) { return style === "newyork"; }
+function supportsSourdough(style) { return style !== "tavern"; }
+// A GF starter behaves differently enough that the straight swap would not hold.
+function isSour(i) { return supportsSourdough(i.style) && i.sourdough && !(i.style === "classic" && i.glutenFree); }
 
 function recipeFor(input) {
+  var rc = baseRecipeFor(input);
+  return input.oven === "pizzaOven" ? liveFireOf(rc) : rc;
+}
+
+function baseRecipeFor(input) {
+  var sour = isSour(input);
   if (input.style === "tavern") return RECIPES.tavern;
-  if (input.style === "neapolitan") return RECIPES.neapolitan;
-  if (input.style === "newyork") return input.crunchy ? RECIPES.newyorkCrunchy : RECIPES.newyork;
-  return input.glutenFree ? RECIPES.classicGF : RECIPES.classic;
+  if (input.style === "neapolitan") return sour ? RECIPES.neapolitanSour : RECIPES.neapolitan;
+  if (input.style === "newyork") {
+    if (input.crunchy) return sour ? RECIPES.newyorkCrunchySour : RECIPES.newyorkCrunchy;
+    return sour ? RECIPES.newyorkSour : RECIPES.newyork;
+  }
+  if (input.glutenFree) return RECIPES.classicGF;
+  return sour ? RECIPES.classicSour : RECIPES.classic;
 }
 
 function pct(v) {
   var p = Math.round(v * 10000) / 100;
   return (p === Math.round(p) ? String(p) : String(p)) + "%";
+}
+
+// A 100% hydration starter is half flour, half water, so both come out of what you weigh.
+function buildIngredients(rc, flour) {
+  var r = Math.round;
+  var starterFlour = (rc.starterShare || 0) / 2;
+  var blended = (rc.secondFlourShare || 0) + (rc.thirdFlourShare || 0);
+  var primary = 1 - blended - starterFlour;
+  var addedWater = rc.hydration - starterFlour;
+  var out = [ { name: rc.flourName, note: rc.flourNote, amount: String(r(flour * primary)), pct: pct(primary) } ];
+  if (rc.secondFlourShare) out.push({ name: rc.secondFlourName, note: rc.secondFlourNote, amount: String(r(flour * rc.secondFlourShare)), pct: pct(rc.secondFlourShare) });
+  if (rc.thirdFlourShare) out.push({ name: rc.thirdFlourName, note: rc.thirdFlourNote, amount: String(r(flour * rc.thirdFlourShare)), pct: pct(rc.thirdFlourShare) });
+  if (rc.starterShare) out.push({ name: "Sourdough starter", note: rc.starterNote, amount: String(r(flour * rc.starterShare)), pct: pct(rc.starterShare) });
+  out.push({ name: "Water", note: rc.starterShare ? rc.waterNote + "; the starter's water is already taken out" : rc.waterNote, amount: String(r(flour * addedWater)), pct: pct(addedWater) });
+  if (!rc.starterShare) out.push({ name: "Yeast", note: rc.yeastNote, amount: (flour * rc.yeast).toFixed(1), pct: pct(rc.yeast) });
+  out.push({ name: "Salt", note: "", amount: String(r(flour * rc.salt)), pct: pct(rc.salt) });
+  if (rc.sugar) out.push({ name: rc.sugarName || "Sugar", note: rc.sugarNote || "", amount: String(r(flour * rc.sugar)), pct: pct(rc.sugar) });
+  if (rc.oil) out.push({ name: rc.oilName, note: "", amount: String(r(flour * rc.oil)), pct: pct(rc.oil) });
+  if (rc.malt) out.push({ name: "Diastatic malt powder", note: "Browning and crisping", amount: (flour * rc.malt).toFixed(1), pct: pct(rc.malt) });
+  return out;
 }
 
 function calculate(input) {
@@ -305,27 +482,26 @@ function calculate(input) {
     flour: r(flour),
     water: r(flour * rc.hydration),
     hydration: r(rc.hydration * 100),
-    ingredients: (rc.secondFlourShare
-      ? [ { name: rc.flourName, note: rc.flourNote, amount: String(r(flour * (1 - rc.secondFlourShare - (rc.thirdFlourShare || 0)))), pct: pct(1 - rc.secondFlourShare - (rc.thirdFlourShare || 0)) },
-          { name: rc.secondFlourName, note: rc.secondFlourNote, amount: String(r(flour * rc.secondFlourShare)), pct: pct(rc.secondFlourShare) } ]
-        .concat(rc.thirdFlourShare ? [ { name: rc.thirdFlourName, note: rc.thirdFlourNote, amount: String(r(flour * rc.thirdFlourShare)), pct: pct(rc.thirdFlourShare) } ] : [])
-      : [ { name: rc.flourName, note: rc.flourNote, amount: String(r(flour)), pct: "100%" } ]
-    ).concat([
-      { name: "Water", note: rc.waterNote, amount: String(r(flour * rc.hydration)), pct: pct(rc.hydration) },
-      { name: "Yeast", note: rc.yeastNote, amount: (flour * rc.yeast).toFixed(1), pct: pct(rc.yeast) },
-      { name: "Salt", note: "", amount: String(r(flour * rc.salt)), pct: pct(rc.salt) },
-      { name: rc.sugarName || "Sugar", note: rc.sugarNote || "", amount: String(r(flour * rc.sugar)), pct: pct(rc.sugar) },
-      { name: rc.oilName, note: "", amount: String(r(flour * rc.oil)), pct: pct(rc.oil) }
-    ]).concat(rc.malt ? [ { name: "Diastatic malt powder", note: "Browning and crisping", amount: (flour * rc.malt).toFixed(1), pct: pct(rc.malt) } ] : []).filter(function (i) { return i.amount !== "0"; }),
+    ingredients: buildIngredients(rc, flour),
     doughType: rc.typeName,
     rest: rc.rest,
     summary: input.count + " ball" + (input.count > 1 ? "s" : "") + ", " + input.size + '", ' + input.thickness,
     tip: tipFor(input),
-    steps: rc.steps
+    steps: rc.doughSteps.concat(bakeStepsFor(input))
   };
 }
 
 function tipFor(i) {
+  if (i.oven === "pizzaOven") {
+    if (i.style === "neapolitan") return { title: "This is the oven for it", msg: "Keep the flame up and go fast. 60\u201390 seconds, turning constantly, is what puffs the rim and spots it." };
+    if (i.style === "newyork") return { title: "Starve the fire", msg: "If the top burns before the base crisps, the dome is too hot. Cut the flame, let it settle 10\u201315 minutes, and bake on stored stone heat." };
+    if (i.style === "tavern") return { title: "Watch it every second", msg: "Cracker-thin dough in a live-fire oven goes from done to black fast. Turn it constantly and pull it early." };
+    return { title: "Let the dome cool first", msg: "Preheat hard, then cut the flame. A saturated stone bakes fine for several minutes after the fire is down." };
+  }
+  if (isSour(i)) {
+    if (i.style === "neapolitan") return { title: "Go by the dough, not the clock", msg: "A warm kitchen can halve these times. Shape when the dough is puffy and jiggly, not when the timer says so." };
+    return { title: "Use the starter at its peak", msg: "Ripe starter is domed and smells tangy, not sharp. Past peak it has sunk, and the dough will be slack and sour." };
+  }
   if (i.style === "tavern") {
     if (i.size >= 16) return { title: "Rolling this thin", msg: 'A ' + i.size + '" round is a lot of rolling. Work from the center out and rest the dough if it fights back.' };
     if (i.thickness === "thick") return { title: "Not really tavern", msg: "Tavern-style is meant to be cracker-thin. Thin or regular gets you closer to the real thing." };
@@ -365,7 +541,9 @@ var state = {
   count: +(localStorage.getItem("count") || 6),
   thickness: localStorage.getItem("thickness") || "regular",
   glutenFree: localStorage.getItem("gf") === "1",
-  crunchy: localStorage.getItem("crunchy") === "1"
+  crunchy: localStorage.getItem("crunchy") === "1",
+  sourdough: localStorage.getItem("sourdough") === "1",
+  oven: localStorage.getItem("oven") || "home"
 };
 
 function render() {
@@ -394,6 +572,7 @@ function render() {
   $("stepstitle").textContent = "How to make " + (/dough$/.test(name) ? name : name + " dough");
   $("gfrow").hidden = !supportsGF(state.style);
   $("crunchrow").hidden = !supportsCrunchy(state.style);
+  $("sourrow").hidden = !supportsSourdough(state.style) || (state.style === "classic" && state.glutenFree);
   $("steps").innerHTML = r.steps.map(function (s) { return "<li>" + s + "</li>"; }).join("");
 
   localStorage.setItem("style", state.style);
@@ -402,6 +581,8 @@ function render() {
   localStorage.setItem("thickness", state.thickness);
   localStorage.setItem("gf", state.glutenFree ? "1" : "0");
   localStorage.setItem("crunchy", state.crunchy ? "1" : "0");
+  localStorage.setItem("sourdough", state.sourdough ? "1" : "0");
+  localStorage.setItem("oven", state.oven);
 }
 
 $("size").value = state.size;
@@ -409,6 +590,16 @@ $("count").value = state.count;
 $("gf").checked = state.glutenFree;
 $("crunchy").checked = state.crunchy;
 $("crunchy").addEventListener("change", function (e) { state.crunchy = e.target.checked; render(); });
+[].forEach.call($("oven").children, function (b) {
+  b.setAttribute("aria-pressed", String(b.dataset.v === state.oven));
+  b.addEventListener("click", function () {
+    state.oven = b.dataset.v;
+    [].forEach.call($("oven").children, function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+    render();
+  });
+});
+$("sourdough").checked = state.sourdough;
+$("sourdough").addEventListener("change", function (e) { state.sourdough = e.target.checked; render(); });
 [].forEach.call($("thickness").children, function (b) {
   b.setAttribute("aria-pressed", String(b.dataset.v === state.thickness));
   b.addEventListener("click", function () {

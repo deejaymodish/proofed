@@ -84,6 +84,26 @@ neapolitan    232 g      2 x 11"   73.28%     0.17%   3.45%   0.86%   none   1.7
 new york      900 g      4 x 15"   63.67%     0.56%   3.44%   1.89%   3%     1.7256
 tavern        300 g      2 x 12"   50%        0.67%   2.33%   2.33%   10%    1.6533
 ```
+## Oven
+An **Oven** picker (Home oven / Pizza oven) changes two things. First, the browning agents: sugar
+and diastatic malt exist to help a ~550F home oven brown, and in a live-fire dome oven they scorch
+the top long before the base crisps, so sweetener is capped at 0.5% and malt is dropped
+(`Recipe.liveFire`). Flour, water and hydration never change with the oven; only the ball weight
+moves, by the mass that was removed. Second, the whole bake procedure: each recipe now holds
+`doughSteps` (mixing and fermenting, oven-agnostic) and the bake tail comes from
+`DoughCalculator.bakeSteps(for:)`, keyed on style plus oven.
+
+The two ovens pull in opposite directions. A home oven is mostly conduction from a steel, so it
+runs at its ceiling. A dome oven is mostly radiant heat from the flame and roof, which inflates the
+rim and burns the top; so Neapolitan keeps the flame up and bakes 60-90 seconds, while every other
+style preheats hard, cuts the flame, and bakes on stored stone heat at 550-600F for 6-8 minutes.
+
+Sourdough is available for every style except tavern (and is ignored when gluten-free is on, since
+a GF starter would not behave the same): 20% starter at 100% hydration replaces the commercial
+yeast, and the starter's flour and water are deducted from the flour and water you weigh, so total
+flour, total water and hydration are unchanged. `Recipe.sourdough(_:typeName:restNote:steps:)`
+builds each variant from its parent; only the ferment timings and steps differ.
+
 New York has a "Crunchy" variant (`newYorkCrunchy`, toggled per input): identical hydration, so
 the crumb stays chewy and open; 10% semolina is taken out of the bread flour, 0.5% diastatic malt
 is added, and the steps switch to a 48-72 hour ferment and a 500F bake. Only New York offers it.
